@@ -5,39 +5,35 @@ type ParametersWithOverloading<T extends (...args: any) => any> = T extends {
   ? A | B
   : never
 
-type FetchArgs = ParametersWithOverloading<typeof fetch>
-type FetchInput = FetchArgs[0]
-type FetchInit = FetchArgs[1]
-type FetchJsonMethodArgs = [FetchInput, object, FetchInit?]
+type FetchArguments = ParametersWithOverloading<typeof fetch>
+type FetchInput = FetchArguments[0]
+type FetchInit = FetchArguments[1]
+type FetchJsonMethodArguments = [FetchInput, object, FetchInit?]
 
-enum HttpMethods {
-  GET = 'get',
-  PUT = 'put',
-  POST = 'post',
-  DELETE = 'delete',
-  PATCH = 'patch',
-  HEAD = 'head',
-  OPTIONS = 'options',
-  TRACE = 'trace',
-  CONNECT = 'connect',
-}
+const HTTP_METHODS = [
+  'get',
+  'put',
+  'post',
+  'delete',
+  'patch',
+  'head',
+  'options',
+  'trace',
+  'connect',
+] as const
 
-const httpMethods = Object.values(HttpMethods)
-
-type HttpMethodsUnion = `${HttpMethods}`
+type HttpMethod = (typeof HTTP_METHODS)[number]
 
 type FetchJsonMethodResult = { response: Response; data: object }
 type FetchJsonMethod = (
-  ...args: FetchJsonMethodArgs
+  ...args: FetchJsonMethodArguments
 ) => Promise<FetchJsonMethodResult>
 
-type FetchJsonType = {
-  [HttpMethod in HttpMethodsUnion]: FetchJsonMethod
+type FetchJson = {
+  [httpMethod in HttpMethod]: FetchJsonMethod
 }
 
-const fetchJson = {} as FetchJsonType
-
-const getFetchJsonParams = (method: HttpMethodsUnion, data: object) => ({
+const createFetchOptions = (method: HttpMethod, data: object): RequestInit => ({
   method,
   headers: {
     'Content-Type': 'application/json',
@@ -45,17 +41,21 @@ const getFetchJsonParams = (method: HttpMethodsUnion, data: object) => ({
   body: JSON.stringify(data),
 })
 
-for (let httpMethod of httpMethods) {
-  fetchJson[httpMethod as HttpMethodsUnion] = (input, data, init) =>
-    fetch
-      .call(null, input, {
-        ...getFetchJsonParams(httpMethod, data),
-        ...init,
-      })
-      .then(async (response) => ({
-        response,
-        data: await response.json(),
-      }))
-}
+const createFetchJsonMethod =
+  (httpMethod: HttpMethod) =>
+  async (...[input, data, init]: FetchJsonMethodArguments) => {
+    const response = await fetch(input, {
+      ...createFetchOptions(httpMethod, data),
+      ...init,
+    })
 
-export { fetchJson }
+    return { response, data: await response.json() }
+  }
+
+export const fetchJson: FetchJson = HTTP_METHODS.reduce(
+  (acc, httpMethod) => ({
+    ...acc,
+    [httpMethod]: createFetchJsonMethod(httpMethod),
+  }),
+  {} as FetchJson
+)
