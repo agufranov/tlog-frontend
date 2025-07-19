@@ -1,3 +1,5 @@
+import { type HttpMethod, HTTP_METHODS } from './httpMethods'
+
 type ParametersWithOverloading<T extends (...args: any) => any> = T extends {
   (...args: infer A): any
   (...args: infer B): any
@@ -8,34 +10,19 @@ type ParametersWithOverloading<T extends (...args: any) => any> = T extends {
 type FetchArguments = ParametersWithOverloading<typeof fetch>
 type FetchInput = FetchArguments[0]
 type FetchInit = FetchArguments[1]
-type FetchJsonMethodArguments = [FetchInput, object?, FetchInit?]
+type FetchJsonMethodArguments<T extends object> = [FetchInput, T?, FetchInit?]
 
-const HTTP_METHODS = [
-  'get',
-  'put',
-  'post',
-  'delete',
-  'patch',
-  'head',
-  'options',
-  'trace',
-  'connect',
-] as const
+type FetchJsonMethodResult<T extends object> = { response: Response; data: T }
 
-type HttpMethod = (typeof HTTP_METHODS)[number]
-
-type FetchJsonMethodResult = { response: Response; data: object }
-type FetchJsonMethod = (
-  ...args: FetchJsonMethodArguments
-) => Promise<FetchJsonMethodResult>
-
-type FetchJson = {
-  [httpMethod in HttpMethod]: FetchJsonMethod
+export type FetchJson = {
+  [httpMethod in HttpMethod]: <T extends object>(
+    ...args: FetchJsonMethodArguments<T>
+  ) => Promise<FetchJsonMethodResult<T>>
 }
 
-const createFetchOptions = (
+const createFetchOptions = <T extends object>(
   method: HttpMethod,
-  data?: object
+  data?: T
 ): RequestInit => ({
   method,
   headers: {
@@ -46,20 +33,19 @@ const createFetchOptions = (
 })
 
 const createFetchJsonMethod =
-  (httpMethod: HttpMethod) =>
-  async (...[input, payload, init]: FetchJsonMethodArguments) => {
+  <T extends object>(httpMethod: HttpMethod) =>
+  async (...[input, payload, init]: FetchJsonMethodArguments<T>) => {
     const response = await fetch(input, {
       ...createFetchOptions(httpMethod, payload),
       ...init,
     })
 
-    let data: object = {}
-
     try {
-      data = await response.json()
-    } catch (error) {}
-
-    return { response, data }
+      const data: T = await response.json()
+      return { response, data }
+    } catch (error) {
+      throw error
+    }
   }
 
 export const fetchJson: FetchJson = HTTP_METHODS.reduce(
