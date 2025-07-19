@@ -7,44 +7,59 @@ type ParametersWithOverloading<T extends (...args: any) => any> = T extends {
   ? A | B
   : never
 
-type FetchArguments = ParametersWithOverloading<typeof fetch>
+export type FetchArguments = ParametersWithOverloading<typeof fetch>
+
 type FetchInput = FetchArguments[0]
 type FetchInit = FetchArguments[1]
-type FetchJsonMethodArguments<T extends object> = [FetchInput, T?, FetchInit?]
 
-type FetchJsonMethodResult<T extends object> = { response: Response; data: T }
+export type FetchJsonMethodArguments<TPayload extends object> = [
+  FetchInput,
+  TPayload?,
+  FetchInit?
+]
+
+type FetchJsonMethodResult<TResult extends object> = { response: Response; data: TResult }
 
 export type FetchJson = {
-  [httpMethod in HttpMethod]: <T extends object>(
-    ...args: FetchJsonMethodArguments<T>
-  ) => Promise<FetchJsonMethodResult<T>>
+  [httpMethod in HttpMethod]: <TPayload extends object = any, TResult extends object = any>(
+    ...args: FetchJsonMethodArguments<TPayload>
+  ) => Promise<FetchJsonMethodResult<TResult>>
 }
 
-const createFetchOptions = <T extends object>(
+const METHODS_WITHOUT_BODY: HttpMethod[] = ['head', 'get']
+
+const createFetchOptions = <TPayload extends object>(
   method: HttpMethod,
-  data?: T
-): RequestInit => ({
-  method,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  credentials: 'include',
-  body: JSON.stringify(data),
-})
+  payload?: TPayload
+): RequestInit => {
+  const options: RequestInit = {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+  }
+
+  if (!METHODS_WITHOUT_BODY.includes(method)) {
+    options.body = JSON.stringify(payload ?? '')
+  }
+
+  return options
+}
 
 const createFetchJsonMethod =
-  <T extends object>(httpMethod: HttpMethod) =>
-  async (...[input, payload, init]: FetchJsonMethodArguments<T>) => {
+  <TPayload extends object>(httpMethod: HttpMethod) =>
+  async (...[input, payload, init]: FetchJsonMethodArguments<TPayload>) => {
     const response = await fetch(input, {
       ...createFetchOptions(httpMethod, payload),
       ...init,
     })
 
     try {
-      const data: T = await response.json()
+      const data: TPayload = await response.json()
       return { response, data }
     } catch (error) {
-      throw error
+      return { response, data: {} }
     }
   }
 

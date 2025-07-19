@@ -1,19 +1,26 @@
-import { useEffect, type FormEvent } from 'react'
+import { useEffect, type FormEvent, useState, useCallback } from 'react'
 import { fetchJson } from '~/helpers/fetchJson'
+import { usePost } from '~/hooks/usePost'
+import { useFetchJson } from '~/hooks/useFetchJson'
 
-const api = (path: string) => `http://localhost:3000${path}`
+const api = (path: string) => `/api${path}`
 
 export function Welcome() {
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault()
-    const data = Object.fromEntries(new FormData(e.target as HTMLFormElement))
-    const response = await fetchJson.post(api('/auth/signIn'), data)
-    console.log(response.data)
-  }
+  const signIn = useFetchJson.post(api('/auth/signIn'))
+  const cookie = useFetchJson.get(api('/auth/cookie'))
+
+  const handleSubmit = useCallback(
+    async (e: FormEvent) => {
+      e.preventDefault()
+      const data = Object.fromEntries(new FormData(e.target as HTMLFormElement))
+      console.log('fetch result', await signIn.fetch(data))
+      // console.log('value', signIn.value)
+    },
+    [signIn]
+  )
 
   const handleCookieClick = async () => {
-    const response = await fetchJson.get(api('/auth/cookie'))
-    console.log(response.data)
+    console.log(await cookie.fetch())
   }
 
   return (
@@ -24,6 +31,9 @@ export function Welcome() {
         <button type="submit">Click</button>
       </form>
       <button onClick={handleCookieClick}>Cookie</button>
+      <button onClick={() => fetchJson.post(api('/auth/signOut'))}>
+        Sign out
+      </button>
     </main>
   )
 }
