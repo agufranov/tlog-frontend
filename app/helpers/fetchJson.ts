@@ -8,7 +8,7 @@ type ParametersWithOverloading<T extends (...args: any) => any> = T extends {
 type FetchArguments = ParametersWithOverloading<typeof fetch>
 type FetchInput = FetchArguments[0]
 type FetchInit = FetchArguments[1]
-type FetchJsonMethodArguments = [FetchInput, object, FetchInit?]
+type FetchJsonMethodArguments = [FetchInput, object?, FetchInit?]
 
 const HTTP_METHODS = [
   'get',
@@ -33,23 +33,33 @@ type FetchJson = {
   [httpMethod in HttpMethod]: FetchJsonMethod
 }
 
-const createFetchOptions = (method: HttpMethod, data: object): RequestInit => ({
+const createFetchOptions = (
+  method: HttpMethod,
+  data?: object
+): RequestInit => ({
   method,
   headers: {
     'Content-Type': 'application/json',
   },
+  credentials: 'include',
   body: JSON.stringify(data),
 })
 
 const createFetchJsonMethod =
   (httpMethod: HttpMethod) =>
-  async (...[input, data, init]: FetchJsonMethodArguments) => {
+  async (...[input, payload, init]: FetchJsonMethodArguments) => {
     const response = await fetch(input, {
-      ...createFetchOptions(httpMethod, data),
+      ...createFetchOptions(httpMethod, payload),
       ...init,
     })
 
-    return { response, data: await response.json() }
+    let data: object = {}
+
+    try {
+      data = await response.json()
+    } catch (error) {}
+
+    return { response, data }
   }
 
 export const fetchJson: FetchJson = HTTP_METHODS.reduce(
