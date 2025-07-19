@@ -1,6 +1,5 @@
 import { useEffect, type FormEvent, useState, useCallback } from 'react'
 import { fetchJson } from '~/helpers/fetchJson'
-import { usePost } from '~/hooks/usePost'
 import { useFetchJson } from '~/hooks/useFetchJson'
 
 const api = (path: string) => `/api${path}`
