@@ -1,3 +1,4 @@
+import { fetchJson } from '@/helpers/fetchJson'
 import { useFetchJson } from '@/hooks/useFetchJson'
 import { useUserStore } from '@/store/user'
 import { Field, Input, Button } from '@chakra-ui/react'
@@ -14,6 +15,14 @@ export const SignForm = () => {
     e.preventDefault()
 
     setIsSigningIn(true)
+
+    // const g = await fetchJson.get<{ a: 2 }>('/api/auth/cookie', {})
+    // g.data.a
+
+    // await fetchJson.head('/api/auth/cookie', {})
+
+    // const p = await fetchJson.post<{ query: string }, { result: number }>('/api/auth/cookie', { query: 's' }, {})
+    // p.data.result
 
     const data = Object.fromEntries(new FormData(e.target as HTMLFormElement))
     console.log('fetch result', await signIn.fetch(data))

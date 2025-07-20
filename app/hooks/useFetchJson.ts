@@ -1,5 +1,10 @@
 import { useCallback, useState } from 'react'
-import { fetchJson, type FetchArguments, type FetchJsonMethodArguments } from '@/helpers/fetchJson'
+import {
+  fetchJson,
+  type FetchArguments,
+  type FetchJsonMethodWithBodyArguments,
+  type FetchJsonMethodWithoutBodyArguments,
+} from '@/helpers/fetchJson'
 import { type HttpMethod, HTTP_METHODS } from '@/helpers/httpMethods'
 
 type UseFetchJsonMethodResult<TPayload extends object, TResult extends object> = {

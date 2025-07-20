@@ -13,19 +13,42 @@ export type FetchArguments = ParametersWithOverloading<typeof fetch>
 type FetchInput = FetchArguments[0]
 type FetchInit = FetchArguments[1]
 
-export type FetchJsonMethodArguments<TPayload extends object> = [FetchInput, TPayload?, FetchInit?]
+export type FetchJsonMethodWithBodyArguments<TPayload extends object> = [FetchInput, TPayload?, FetchInit?]
+export type FetchJsonMethodWithoutBodyArguments = [FetchInput, FetchInit?]
 
-type FetchJsonMethodResult<TResult extends object> = { response: Response; data: TResult }
+type FetchJsonMethodResult<TResult extends object> = { response: Response; data: TResult | undefined }
+
+const METHODS_WITHOUT_BODY = ['head', 'get'] as const satisfies HttpMethod[]
+type MethodsWithoutBody = (typeof METHODS_WITHOUT_BODY)[number]
+
+// type FetchJsonMethodWithBody<TPayload extends object = any, TResult extends object = any> = (
+//   input: FetchJsonMethodWithBodyArguments<TPayload>[0],
+//   payload?: FetchJsonMethodWithBodyArguments<TPayload>[1],
+//   init?: FetchJsonMethodWithBodyArguments<TPayload>[2]
+// ) => Promise<FetchJsonMethodResult<TResult>>
+
+// type FetchJsonMethodWithoutBody<TResult extends object = any> = (
+//   input: FetchJsonMethodWithoutBodyArguments[0],
+//   init?: FetchJsonMethodWithoutBodyArguments[1]
+// ) => Promise<FetchJsonMethodResult<TResult>>
 
 export type FetchJson = {
-  [httpMethod in HttpMethod]: <TPayload extends object = any, TResult extends object = any>(
-    ...args: FetchJsonMethodArguments<TPayload>
-  ) => Promise<FetchJsonMethodResult<TResult>>
+  [httpMethod in HttpMethod]: httpMethod extends MethodsWithoutBody
+    ? <TResult extends object = any>(
+        input: FetchJsonMethodWithoutBodyArguments[0],
+        init?: FetchJsonMethodWithoutBodyArguments[1]
+      ) => Promise<FetchJsonMethodResult<TResult>>
+    : <TPayload extends object = any, TResult extends object = any>(
+        input: FetchJsonMethodWithBodyArguments<TPayload>[0],
+        payload?: FetchJsonMethodWithBodyArguments<TPayload>[1],
+        init?: FetchJsonMethodWithBodyArguments<TPayload>[2]
+      ) => Promise<FetchJsonMethodResult<TResult>>
 }
 
-const METHODS_WITHOUT_BODY: HttpMethod[] = ['head', 'get']
-
-const createFetchOptions = <TPayload extends object>(method: HttpMethod, payload?: TPayload): RequestInit => {
+const createFetchOptions = <TPayload extends object>(
+  method: HttpMethod,
+  payload?: typeof method extends MethodsWithoutBody ? undefined : TPayload
+): RequestInit => {
   const options: RequestInit = {
     method,
     headers: {
@@ -34,15 +57,23 @@ const createFetchOptions = <TPayload extends object>(method: HttpMethod, payload
     credentials: 'include',
   }
 
-  if (!METHODS_WITHOUT_BODY.includes(method)) {
+  if (!(METHODS_WITHOUT_BODY as HttpMethod[]).includes(method)) {
     options.body = JSON.stringify(payload ?? '')
   }
 
   return options
 }
 
-const createFetchJsonMethod = <TPayload extends object>(httpMethod: HttpMethod) => {
-  return async (...[input, payload, init]: FetchJsonMethodArguments<TPayload>) => {
+const createFetchJsonMethod = <TPayload extends object, TResult extends object>(httpMethod: HttpMethod) => {
+  type Args = typeof httpMethod extends MethodsWithoutBody
+    ? FetchJsonMethodWithoutBodyArguments
+    : FetchJsonMethodWithBodyArguments<TPayload>
+
+  return async (
+    input: Args[0],
+    payload: typeof httpMethod extends MethodsWithoutBody ? undefined : Args[1],
+    init: Args[2]
+  ): Promise<FetchJsonMethodResult<TResult>> => {
     const response = await fetch(input, {
       ...createFetchOptions(httpMethod, payload),
       ...init,
@@ -51,13 +82,15 @@ const createFetchJsonMethod = <TPayload extends object>(httpMethod: HttpMethod) 
     try {
       // TODO debug
       await sleep(1000)
-      try {
-        const data: TPayload = await response.json()
-        return { response, data }
-      } catch (jsonParseError) {
+      const data: TResult = await response.json()
+
+      return { response, data }
+    } catch (error) {
+      if (error instanceof SyntaxError && error.name === 'SyntaxError') {
+        // handle json parsing error
+        // throw error
         return { response, data: undefined }
       }
-    } catch (error) {
       throw error
     }
   }

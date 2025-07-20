@@ -32,12 +32,14 @@ export const useUserStore = create<UserState>((set) => {
     fetchUser: async () => {
       try {
         set({ loading: true })
-        const { data } = await fetchJson.get<{}, { user: User }>('/api/auth/profile')
+        const response = await fetchJson.get<{ user: User }>('/api/auth/profile')
+        console.log('response', response)
+        const { data } = response
         set({ user: data.user, isFetched: true })
       } catch (err) {
-        set({ error: err })
+        set({ user: undefined, error: err })
       } finally {
-        set({ loading: false })
+        set({ loading: false, isFetched: true })
       }
     },
     signOut: async () => {
@@ -46,6 +48,7 @@ export const useUserStore = create<UserState>((set) => {
         await fetchJson.post('/api/auth/signOut')
         set({ user: undefined })
       } catch (err) {
+        console.log('catch in signOut', err)
       } finally {
         set({ loading: false })
       }
