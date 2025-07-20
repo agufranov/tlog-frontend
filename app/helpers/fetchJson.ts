@@ -51,8 +51,12 @@ const createFetchJsonMethod = <TPayload extends object>(httpMethod: HttpMethod) 
     try {
       // TODO debug
       await sleep(1000)
-      const data: TPayload = await response.json()
-      return { response, data }
+      try {
+        const data: TPayload = await response.json()
+        return { response, data }
+      } catch (jsonParseError) {
+        return { response, data: undefined }
+      }
     } catch (error) {
       throw error
     }

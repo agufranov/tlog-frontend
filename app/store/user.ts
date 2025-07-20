@@ -12,6 +12,7 @@ type User = {
 export interface UserState {
   user?: User
   error?: any
+  loading: boolean
   isFetched: boolean
   fetchUser: () => Promise<void>
   signOut: () => Promise<void>
@@ -21,19 +22,33 @@ export const useUserStore = create<UserState>((set) => {
   let user: UserState['user']
   let error: UserState['error']
   let isFetched: UserState['isFetched'] = false
+  let loading: UserState['loading'] = false
 
   return {
     user,
     error,
     isFetched,
+    loading,
     fetchUser: async () => {
-      const { data } = await fetchJson.get<{}, { user: User }>('/api/auth/profile')
-      // if (data.error) throw data.error
-      set({ user: data.user, isFetched: true })
+      try {
+        set({ loading: true })
+        const { data } = await fetchJson.get<{}, { user: User }>('/api/auth/profile')
+        set({ user: data.user, isFetched: true })
+      } catch (err) {
+        set({ error: err })
+      } finally {
+        set({ loading: false })
+      }
     },
     signOut: async () => {
-      fetchJson.post('/api/auth/signOut')
-      set({ user: undefined })
+      set({ loading: true })
+      try {
+        await fetchJson.post('/api/auth/signOut')
+        set({ user: undefined })
+      } catch (err) {
+      } finally {
+        set({ loading: false })
+      }
     },
   }
 })
