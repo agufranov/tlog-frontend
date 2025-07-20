@@ -1,11 +1,10 @@
-import type { Route } from './+types/home'
 import { useEffect } from 'react'
-import { useFetchJson } from '@/hooks/useFetchJson'
-import { Provider } from '@/components/ui/provider'
-import { SplashScreen } from '@/components/splashScreen'
-import { useUserStore, type UserState } from '@/store/user'
-import { SignForm } from '@/components/signForm'
-import { User } from '@/components/user'
+import { SignForm } from '~/components/signForm'
+import { SplashScreen } from '~/components/splashScreen'
+import { Provider } from '~/components/ui/provider'
+import { User } from '~/components/user'
+import { useUserStore } from '~/store/user'
+import type { Route } from './+types/home'
 import style from './home.module.css'
 
 export function meta({}: Route.MetaArgs) {

@@ -4,8 +4,8 @@ import {
   type FetchArguments,
   type FetchJsonMethodWithBodyArguments,
   type FetchJsonMethodWithoutBodyArguments,
-} from '@/helpers/fetchJson'
-import { type HttpMethod, HTTP_METHODS } from '@/helpers/httpMethods'
+} from '~/helpers/fetchJson'
+import { HTTP_METHODS, type HttpMethod, type HttpMethodsWithoutBody } from '~/helpers/httpMethods'
 
 type UseFetchJsonMethodResult<TPayload extends object, TResult extends object> = {
   value: TResult
@@ -16,9 +16,16 @@ type UseFetchJsonMethodResult<TPayload extends object, TResult extends object> =
 }
 
 type UseFetchJson = {
-  [httpMethod in HttpMethod]: <TPayload extends object, TResult extends object>(
-    ...args: FetchJsonMethodArguments<TPayload>
-  ) => UseFetchJsonMethodResult<TPayload, TResult>
+  [httpMethod in HttpMethod]: httpMethod extends HttpMethodsWithoutBody
+    ? <TResult extends object = any>(
+        input: FetchJsonMethodWithoutBodyArguments[0],
+        init?: FetchJsonMethodWithoutBodyArguments[1]
+      ) => UseFetchJsonMethodResult<TResult>
+    : <TPayload extends object = any, TResult extends object = any>(
+        input: FetchJsonMethodWithBodyArguments<TPayload>[0],
+        payload?: FetchJsonMethodWithBodyArguments<TPayload>[1],
+        init?: FetchJsonMethodWithBodyArguments<TPayload>[2]
+      ) => UseFetchJsonMethodResult<TPayload, TResult>
 }
 
 async function main() {

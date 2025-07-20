@@ -1,4 +1,4 @@
-import { type HttpMethod, HTTP_METHODS } from './httpMethods'
+import { HTTP_METHODS, type HttpMethod, type HttpMethodsWithoutBody } from './httpMethods'
 import { sleep } from './sleep'
 
 type ParametersWithOverloading<T extends (...args: any) => any> = T extends {
@@ -18,9 +18,6 @@ export type FetchJsonMethodWithoutBodyArguments = [FetchInput, FetchInit?]
 
 type FetchJsonMethodResult<TResult extends object> = { response: Response; data: TResult | undefined }
 
-const METHODS_WITHOUT_BODY = ['head', 'get'] as const satisfies HttpMethod[]
-type MethodsWithoutBody = (typeof METHODS_WITHOUT_BODY)[number]
-
 // type FetchJsonMethodWithBody<TPayload extends object = any, TResult extends object = any> = (
 //   input: FetchJsonMethodWithBodyArguments<TPayload>[0],
 //   payload?: FetchJsonMethodWithBodyArguments<TPayload>[1],
@@ -33,7 +30,7 @@ type MethodsWithoutBody = (typeof METHODS_WITHOUT_BODY)[number]
 // ) => Promise<FetchJsonMethodResult<TResult>>
 
 export type FetchJson = {
-  [httpMethod in HttpMethod]: httpMethod extends MethodsWithoutBody
+  [httpMethod in HttpMethod]: httpMethod extends HttpMethodsWithoutBody
     ? <TResult extends object = any>(
         input: FetchJsonMethodWithoutBodyArguments[0],
         init?: FetchJsonMethodWithoutBodyArguments[1]
@@ -47,7 +44,7 @@ export type FetchJson = {
 
 const createFetchOptions = <TPayload extends object>(
   method: HttpMethod,
-  payload?: typeof method extends MethodsWithoutBody ? undefined : TPayload
+  payload?: typeof method extends HttpMethodsWithoutBody ? undefined : TPayload
 ): RequestInit => {
   const options: RequestInit = {
     method,
@@ -65,13 +62,13 @@ const createFetchOptions = <TPayload extends object>(
 }
 
 const createFetchJsonMethod = <TPayload extends object, TResult extends object>(httpMethod: HttpMethod) => {
-  type Args = typeof httpMethod extends MethodsWithoutBody
+  type Args = typeof httpMethod extends HttpMethodsWithoutBody
     ? FetchJsonMethodWithoutBodyArguments
     : FetchJsonMethodWithBodyArguments<TPayload>
 
   return async (
     input: Args[0],
-    payload: typeof httpMethod extends MethodsWithoutBody ? undefined : Args[1],
+    payload: typeof httpMethod extends HttpMethodsWithoutBody ? undefined : Args[1],
     init: Args[2]
   ): Promise<FetchJsonMethodResult<TResult>> => {
     const response = await fetch(input, {

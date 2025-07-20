@@ -1,7 +1,5 @@
-import { fetchJson } from '@/helpers/fetchJson'
-import type { U } from 'node_modules/react-router/dist/development/route-data-DjzmHYNR.mjs'
-import * as React from 'react'
 import { create } from 'zustand'
+import { fetchJson } from '~/helpers/fetchJson'
 
 // TODO extract
 type User = {

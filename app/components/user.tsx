@@ -1,6 +1,5 @@
-import { fetchJson } from '@/helpers/fetchJson'
-import { useUserStore } from '@/store/user'
 import { Button } from '@chakra-ui/react'
+import { useUserStore } from '~/store/user'
 
 export const User = () => {
   const userStore = useUserStore()

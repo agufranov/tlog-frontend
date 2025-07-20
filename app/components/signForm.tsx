@@ -1,8 +1,7 @@
-import { fetchJson } from '@/helpers/fetchJson'
-import { useFetchJson } from '@/hooks/useFetchJson'
-import { useUserStore } from '@/store/user'
-import { Field, Input, Button } from '@chakra-ui/react'
-import { useMemo, type FormEvent, useState } from 'react'
+import { Button, Field, Input } from '@chakra-ui/react'
+import { useState, type FormEvent } from 'react'
+import { useFetchJson } from '~/hooks/useFetchJson'
+import { useUserStore } from '~/store/user'
 
 export const SignForm = () => {
   const [isSigningIn, setIsSigningIn] = useState(false)
