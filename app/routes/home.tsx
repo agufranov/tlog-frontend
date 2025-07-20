@@ -6,6 +6,7 @@ import { SplashScreen } from '@/components/splashScreen'
 import { useUserStore, type UserState } from '@/store/user'
 import { SignForm } from '@/components/signForm'
 import { User } from '@/components/user'
+import style from './home.module.css'
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: 'The last of Guss' }, { name: 'description', content: 'The last of Guss game' }]
@@ -24,7 +25,7 @@ export default function Home() {
 
   return (
     <Provider>
-      <div className="center ml-16">
+      <div className={style.root}>
         {userStore.isFetched ? userStore.user?.username ? <User /> : <SignForm /> : <SplashScreen />}
       </div>
     </Provider>
