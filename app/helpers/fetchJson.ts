@@ -1,4 +1,5 @@
 import { type HttpMethod, HTTP_METHODS } from './httpMethods'
+import { sleep } from './sleep'
 
 type ParametersWithOverloading<T extends (...args: any) => any> = T extends {
   (...args: infer A): any
@@ -12,11 +13,7 @@ export type FetchArguments = ParametersWithOverloading<typeof fetch>
 type FetchInput = FetchArguments[0]
 type FetchInit = FetchArguments[1]
 
-export type FetchJsonMethodArguments<TPayload extends object> = [
-  FetchInput,
-  TPayload?,
-  FetchInit?
-]
+export type FetchJsonMethodArguments<TPayload extends object> = [FetchInput, TPayload?, FetchInit?]
 
 type FetchJsonMethodResult<TResult extends object> = { response: Response; data: TResult }
 
@@ -28,10 +25,7 @@ export type FetchJson = {
 
 const METHODS_WITHOUT_BODY: HttpMethod[] = ['head', 'get']
 
-const createFetchOptions = <TPayload extends object>(
-  method: HttpMethod,
-  payload?: TPayload
-): RequestInit => {
+const createFetchOptions = <TPayload extends object>(method: HttpMethod, payload?: TPayload): RequestInit => {
   const options: RequestInit = {
     method,
     headers: {
@@ -47,21 +41,23 @@ const createFetchOptions = <TPayload extends object>(
   return options
 }
 
-const createFetchJsonMethod =
-  <TPayload extends object>(httpMethod: HttpMethod) =>
-  async (...[input, payload, init]: FetchJsonMethodArguments<TPayload>) => {
+const createFetchJsonMethod = <TPayload extends object>(httpMethod: HttpMethod) => {
+  return async (...[input, payload, init]: FetchJsonMethodArguments<TPayload>) => {
     const response = await fetch(input, {
       ...createFetchOptions(httpMethod, payload),
       ...init,
     })
 
     try {
+      // TODO debug
+      await sleep(1000)
       const data: TPayload = await response.json()
       return { response, data }
     } catch (error) {
-      return { response, data: {} }
+      throw error
     }
   }
+}
 
 export const fetchJson: FetchJson = HTTP_METHODS.reduce(
   (acc, httpMethod) => ({
