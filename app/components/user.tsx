@@ -1,8 +1,26 @@
 import { Button } from '@chakra-ui/react'
+import { useEffect } from 'react'
 import { useUserStore } from '~/store/user'
 
 export const User = () => {
   const userStore = useUserStore()
+
+  useEffect(() => {
+    console.log('Mount!')
+
+    // Just check if fetchJson handles bodyless requests as well as others
+
+    // const a = fetchJson.get<{ x: number }>('/api/test/a', { headers: { XZZXZXX: 'empty' } })
+    // const b = fetchJson.post<{ r: string }, { result: boolean }>(
+    //   '/api/test/b',
+    //   { r: 'sts' },
+    //   { headers: { PPPPPPPPPPPPP: 'empty' } }
+    // )
+
+    return () => {
+      console.log('Unmount!')
+    }
+  }, [])
 
   return (
     <div>

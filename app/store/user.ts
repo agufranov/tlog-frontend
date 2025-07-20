@@ -33,7 +33,7 @@ export const useUserStore = create<UserState>((set) => {
         const response = await fetchJson.get<{ user: User }>('/api/auth/profile')
         console.log('response', response)
         const { data } = response
-        set({ user: data.user, isFetched: true })
+        set({ user: data?.user, isFetched: true })
       } catch (err) {
         set({ user: undefined, error: err })
       } finally {

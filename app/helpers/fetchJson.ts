@@ -1,45 +1,55 @@
-import { HTTP_METHODS, type HttpMethod, type HttpMethodsWithoutBody } from './httpMethods'
+import { HTTP_METHODS, isHttpMethodHasBody, type HttpMethod, type HttpMethodsWithoutBody } from './httpMethods'
 import { sleep } from './sleep'
 
-type ParametersWithOverloading<T extends (...args: any) => any> = T extends {
-  (...args: infer A): any
-  (...args: infer B): any
-}
-  ? A | B
-  : never
+type SecondArgument<T extends (...args: any) => any> = T extends (arg1: any, arg2: infer U) => any ? U : never
 
-export type FetchArguments = ParametersWithOverloading<typeof fetch>
+export type FetchArguments = [
+  string | URL, // we exclude Request type, because it contains too much information (including HTTP method), which will be redefined
+  SecondArgument<typeof fetch>
+]
 
 type FetchInput = FetchArguments[0]
 type FetchInit = FetchArguments[1]
 
 export type FetchJsonMethodWithBodyArguments<TPayload extends object> = [FetchInput, TPayload?, FetchInit?]
 export type FetchJsonMethodWithoutBodyArguments = [FetchInput, FetchInit?]
+export type FetchJsonMethodArguments<M extends HttpMethod, TPayload extends object> = M extends HttpMethodsWithoutBody
+  ? FetchJsonMethodWithoutBodyArguments
+  : FetchJsonMethodWithBodyArguments<TPayload>
 
 type FetchJsonMethodResult<TResult extends object> = { response: Response; data: TResult | undefined }
 
-// type FetchJsonMethodWithBody<TPayload extends object = any, TResult extends object = any> = (
-//   input: FetchJsonMethodWithBodyArguments<TPayload>[0],
-//   payload?: FetchJsonMethodWithBodyArguments<TPayload>[1],
-//   init?: FetchJsonMethodWithBodyArguments<TPayload>[2]
-// ) => Promise<FetchJsonMethodResult<TResult>>
+export type FetchJsonMethodWithBody = <TPayload extends object = any, TResult extends object = any>(
+  input: FetchJsonMethodWithBodyArguments<TPayload>[0],
+  payload?: FetchJsonMethodWithBodyArguments<TPayload>[1],
+  init?: FetchJsonMethodWithBodyArguments<TPayload>[2]
+) => Promise<FetchJsonMethodResult<TResult>>
 
-// type FetchJsonMethodWithoutBody<TResult extends object = any> = (
-//   input: FetchJsonMethodWithoutBodyArguments[0],
-//   init?: FetchJsonMethodWithoutBodyArguments[1]
-// ) => Promise<FetchJsonMethodResult<TResult>>
+export type FetchJsonMethodWithoutBody = <TResult extends object = any>(
+  input: FetchJsonMethodWithoutBodyArguments[0],
+  init?: FetchJsonMethodWithoutBodyArguments[1]
+) => Promise<FetchJsonMethodResult<TResult>>
+
+export type FetchJsonMethod<M extends HttpMethod> = M extends HttpMethodsWithoutBody
+  ? FetchJsonMethodWithoutBody
+  : FetchJsonMethodWithBody
 
 export type FetchJson = {
-  [httpMethod in HttpMethod]: httpMethod extends HttpMethodsWithoutBody
-    ? <TResult extends object = any>(
-        input: FetchJsonMethodWithoutBodyArguments[0],
-        init?: FetchJsonMethodWithoutBodyArguments[1]
-      ) => Promise<FetchJsonMethodResult<TResult>>
-    : <TPayload extends object = any, TResult extends object = any>(
-        input: FetchJsonMethodWithBodyArguments<TPayload>[0],
-        payload?: FetchJsonMethodWithBodyArguments<TPayload>[1],
-        init?: FetchJsonMethodWithBodyArguments<TPayload>[2]
-      ) => Promise<FetchJsonMethodResult<TResult>>
+  [httpMethod in HttpMethod]: FetchJsonMethod<httpMethod>
+}
+
+export const isMethodHasBody = <M extends HttpMethod>(
+  httpMethod: M,
+  method: FetchJsonMethodWithBody | FetchJsonMethodWithoutBody
+): method is FetchJsonMethodWithBody => {
+  return isHttpMethodHasBody(httpMethod)
+}
+
+const isArgumentsHasBody = <Method extends HttpMethod, TPayload extends object>(
+  method: Method,
+  args: FetchJsonMethodWithBodyArguments<TPayload> | FetchJsonMethodWithoutBodyArguments
+): args is FetchJsonMethodWithBodyArguments<TPayload> => {
+  return isHttpMethodHasBody(method)
 }
 
 const createFetchOptions = <TPayload extends object>(
@@ -51,26 +61,25 @@ const createFetchOptions = <TPayload extends object>(
     headers: {
       'Content-Type': 'application/json',
     },
-    credentials: 'include',
+    // TODO add customization
+    // credentials: 'include',
   }
 
-  if (!(METHODS_WITHOUT_BODY as HttpMethod[]).includes(method)) {
-    options.body = JSON.stringify(payload ?? '')
+  if (isHttpMethodHasBody(method)) {
+    options.body = JSON.stringify(payload ?? {})
   }
 
   return options
 }
 
 const createFetchJsonMethod = <TPayload extends object, TResult extends object>(httpMethod: HttpMethod) => {
-  type Args = typeof httpMethod extends HttpMethodsWithoutBody
-    ? FetchJsonMethodWithoutBodyArguments
-    : FetchJsonMethodWithBodyArguments<TPayload>
+  type Args = FetchJsonMethodArguments<typeof httpMethod, TPayload>
 
-  return async (
-    input: Args[0],
-    payload: typeof httpMethod extends HttpMethodsWithoutBody ? undefined : Args[1],
-    init: Args[2]
-  ): Promise<FetchJsonMethodResult<TResult>> => {
+  return async (...args: Args): Promise<FetchJsonMethodResult<TResult>> => {
+    const hasBody = isArgumentsHasBody(httpMethod, args)
+
+    const [input, payload, init] = hasBody ? args : [args[0], undefined, args[1]]
+
     const response = await fetch(input, {
       ...createFetchOptions(httpMethod, payload),
       ...init,
@@ -84,8 +93,7 @@ const createFetchJsonMethod = <TPayload extends object, TResult extends object>(
       return { response, data }
     } catch (error) {
       if (error instanceof SyntaxError && error.name === 'SyntaxError') {
-        // handle json parsing error
-        // throw error
+        // TODO handle json parsing error or throw error?
         return { response, data: undefined }
       }
       throw error
@@ -93,10 +101,12 @@ const createFetchJsonMethod = <TPayload extends object, TResult extends object>(
   }
 }
 
-export const fetchJson: FetchJson = HTTP_METHODS.reduce(
-  (acc, httpMethod) => ({
-    ...acc,
-    [httpMethod]: createFetchJsonMethod(httpMethod),
-  }),
-  {} as FetchJson
-)
+export const fetchJson: FetchJson = {
+  ...HTTP_METHODS.reduce(
+    (acc, httpMethod) => ({
+      ...acc,
+      [httpMethod]: createFetchJsonMethod(httpMethod),
+    }),
+    {} as FetchJson
+  ),
+}

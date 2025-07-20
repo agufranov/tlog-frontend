@@ -8,6 +8,7 @@ export const SignForm = () => {
 
   const userStore = useUserStore()
 
+  // TODO autogenerate api types from backend
   const signIn = useFetchJson.post('/api/auth/signIn')
 
   const handleSubmit = async (e: FormEvent) => {

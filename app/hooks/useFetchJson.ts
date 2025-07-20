@@ -2,55 +2,95 @@ import { useCallback, useState } from 'react'
 import {
   fetchJson,
   type FetchArguments,
+  type FetchJsonMethodWithBody,
   type FetchJsonMethodWithBodyArguments,
+  type FetchJsonMethodWithoutBody,
   type FetchJsonMethodWithoutBodyArguments,
 } from '~/helpers/fetchJson'
-import { HTTP_METHODS, type HttpMethod, type HttpMethodsWithoutBody } from '~/helpers/httpMethods'
+import { HTTP_METHODS, isHttpMethodHasBody, type HttpMethod, type HttpMethodsWithoutBody } from '~/helpers/httpMethods'
 
-type UseFetchJsonMethodResult<TPayload extends object, TResult extends object> = {
+interface UseFetchJsonMethodWithoutPayloadResult<TResult extends object> {
   value: TResult
   loading: boolean
   error: any
   isFetched: boolean
+  fetch: () => Promise<TResult>
+}
+
+interface UseFetchJsonMethodWithPayloadResult<TPayload extends object, TResult extends object>
+  extends UseFetchJsonMethodWithoutPayloadResult<TResult> {
   fetch: (payload?: TPayload) => Promise<TResult>
 }
 
-type UseFetchJson = {
-  [httpMethod in HttpMethod]: httpMethod extends HttpMethodsWithoutBody
-    ? <TResult extends object = any>(
-        input: FetchJsonMethodWithoutBodyArguments[0],
-        init?: FetchJsonMethodWithoutBodyArguments[1]
-      ) => UseFetchJsonMethodResult<TResult>
-    : <TPayload extends object = any, TResult extends object = any>(
-        input: FetchJsonMethodWithBodyArguments<TPayload>[0],
-        payload?: FetchJsonMethodWithBodyArguments<TPayload>[1],
-        init?: FetchJsonMethodWithBodyArguments<TPayload>[2]
-      ) => UseFetchJsonMethodResult<TPayload, TResult>
+interface UseFetchJsonMethodWithPayloadResult<TPayload extends object, TResult extends object>
+  extends UseFetchJsonMethodWithoutPayloadResult<TResult> {
+  fetch: (payload?: TPayload) => Promise<TResult>
 }
 
-async function main() {
-  const result = useFetchJson.post('/api/auth/cookie')
+type UseFetchJsonMethodWithBody = <TPayload extends object = any, TResult extends object = any>(
+  input: FetchJsonMethodWithBodyArguments<TPayload>[0],
+  payload?: FetchJsonMethodWithBodyArguments<TPayload>[1],
+  init?: FetchJsonMethodWithBodyArguments<TPayload>[2]
+) => UseFetchJsonMethodWithPayloadResult<TPayload, TResult>
+
+type UseFetchJsonMethodWithoutBody = <TResult extends object = any>(
+  input: FetchJsonMethodWithoutBodyArguments[0],
+  init?: FetchJsonMethodWithoutBodyArguments[1]
+) => UseFetchJsonMethodWithoutPayloadResult<TResult>
+
+export type FetchJsonMethodArguments<M extends HttpMethod, TPayload extends object> = M extends HttpMethodsWithoutBody
+  ? FetchJsonMethodWithoutBodyArguments
+  : FetchJsonMethodWithBodyArguments<TPayload>
+
+type UseFetchJson = {
+  [httpMethod in HttpMethod]: httpMethod extends HttpMethodsWithoutBody
+    ? UseFetchJsonMethodWithoutBody
+    : UseFetchJsonMethodWithBody
 }
 
 export const useFetchJson = HTTP_METHODS.reduce((acc, httpMethod) => {
   return {
     ...acc,
     [httpMethod]: <TPayload extends object, TResult extends object>(...args: FetchArguments) => {
-      const [value, setValue] = useState<UseFetchJsonMethodResult<TPayload, TResult>['value']>()
-      const [error, setError] = useState<UseFetchJsonMethodResult<TPayload, TResult>['error']>()
-      const [loading, setLoading] = useState<UseFetchJsonMethodResult<TPayload, TResult>['loading']>(false)
-      const [isFetched, setIsFetched] = useState<UseFetchJsonMethodResult<TPayload, TResult>['isFetched']>(false)
+      type UseFetchJsonMethodResult = typeof httpMethod extends HttpMethodsWithoutBody
+        ? UseFetchJsonMethodWithoutPayloadResult<TResult>
+        : UseFetchJsonMethodWithPayloadResult<TPayload, TResult>
+
+      const [value, setValue] = useState<UseFetchJsonMethodResult['value']>()
+      const [error, setError] = useState<UseFetchJsonMethodResult['error']>()
+      const [loading, setLoading] = useState<UseFetchJsonMethodResult['loading']>(false)
+      const [isFetched, setIsFetched] = useState<UseFetchJsonMethodResult['isFetched']>(false)
+
+      const isMethodHasBody = <M extends HttpMethod>(
+        httpMethod: M,
+        method: FetchJsonMethodWithBody | FetchJsonMethodWithoutBody
+      ): method is FetchJsonMethodWithBody => {
+        return isHttpMethodHasBody(httpMethod)
+      }
 
       const fetchData = useCallback(
         async (payload: TPayload) => {
           setError(undefined)
           setLoading(true)
+          let data: TResult
+          let response: Response
           try {
-            const { data } = await fetchJson[httpMethod](args[0], payload, args[1])
+            const fetchJsonMethod = fetchJson[httpMethod]
+
+            const hasBody = isMethodHasBody(httpMethod, fetchJsonMethod)
+
+            const fetchResult = await (hasBody
+              ? (fetchJsonMethod as FetchJsonMethodWithBody)(args[0], payload, args[1])
+              : (fetchJsonMethod as FetchJsonMethodWithoutBody)(args[0], args[1]))
+
+            data = fetchResult.data
+            response = fetchResult.response
+
             setValue(data)
+
             return data
           } catch (err) {
-            // setValue(undefined) // TODO спорно
+            setValue(undefined) // TODO спорно
             setError(err)
             throw err
           } finally {
