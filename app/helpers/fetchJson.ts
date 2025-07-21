@@ -4,12 +4,13 @@ import { sleep } from './sleep'
 type SecondArgument<T extends (...args: any) => any> = T extends (arg1: any, arg2: infer U) => any ? U : never
 
 export type FetchArguments = [
-  string | URL, // we exclude Request type, because it contains too much information (including HTTP method), which will be redefined
+  // string | URL, // we exclude Request type, because it contains too much information (including HTTP method), which will be redefined
+  string, // TODO simplified to string, but maybe need to parse URL
   SecondArgument<typeof fetch>
 ]
 
-type FetchInput = FetchArguments[0]
-type FetchInit = FetchArguments[1]
+export type FetchInput = FetchArguments[0]
+export type FetchInit = FetchArguments[1]
 
 export type FetchJsonMethodWithBodyArguments<TPayload extends object> = [FetchInput, TPayload?, FetchInit?]
 export type FetchJsonMethodWithoutBodyArguments = [FetchInput, FetchInit?]
@@ -17,7 +18,7 @@ export type FetchJsonMethodArguments<M extends HttpMethod, TPayload extends obje
   ? FetchJsonMethodWithoutBodyArguments
   : FetchJsonMethodWithBodyArguments<TPayload>
 
-type FetchJsonMethodResult<TResult extends object> = { response: Response; data: TResult | undefined }
+export type FetchJsonMethodResult<TResult extends object> = { response: Response; data: TResult | undefined }
 
 export type FetchJsonMethodWithBody = <TPayload extends object = any, TResult extends object = any>(
   input: FetchJsonMethodWithBodyArguments<TPayload>[0],
