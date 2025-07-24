@@ -1,6 +1,6 @@
 import type { paths } from 'api'
-import { fetchJson, type FetchInit, type FetchJsonMethodResult } from './fetchJson'
-import { HTTP_METHODS, isHttpMethodHasBody, type HttpMethod, type HttpMethodsWithoutBody } from './httpMethods'
+import { fetchJson } from './fetchJson'
+import { HTTP_METHODS, isHttpMethodHasBody, type HttpMethod } from './httpMethods'
 
 type ApiRoute<T extends keyof paths> = paths[T]
 
@@ -30,65 +30,18 @@ type ApiEndpointResponseSuccess<M extends HttpMethod, T extends keyof paths> = 2
     : never
   : never
 
-export type FetchJsonOpenapiMethodWithoutBodyArguments<TPath extends keyof paths> = [TPath, FetchInit?]
-
-// const a: ApiEndpointRequest<'post', '/auth/signOut'> = {}
-
-export type FetchJsonOpenapiMethodWithBodyArguments<M extends HttpMethod, TPath extends keyof paths> = [
-  TPath,
-  ApiEndpointRequest<M, TPath>?,
-  FetchInit?
-]
-export type FetchJsonOpenapiMethodArguments<
-  M extends HttpMethod,
-  TPath extends keyof paths
-> = M extends HttpMethodsWithoutBody
-  ? FetchJsonOpenapiMethodWithoutBodyArguments<TPath>
-  : FetchJsonOpenapiMethodWithBodyArguments<M, TPath>
-
-const isArgumentsHasBody = <M extends HttpMethod, TPath extends keyof paths>(
-  method: M,
-  args: FetchJsonOpenapiMethodWithBodyArguments<M, TPath> | FetchJsonOpenapiMethodWithoutBodyArguments<TPath>
-): args is FetchJsonOpenapiMethodWithBodyArguments<M, TPath> => {
-  return isHttpMethodHasBody(method)
-}
-
-export type FetchJsonOpenapiMethodWithBody = <
-  M extends HttpMethod,
-  TPath extends keyof paths,
-  TResult extends object = any
->(
-  // input: FetchJsonOpenapiMethodWithBodyArguments<M, TPath>[0],
-  // payload?: FetchJsonOpenapiMethodWithBodyArguments<M, TPath>[1],
-  input: TPath,
-  payload?: ApiEndpointRequest<M, TPath>,
-  init?: FetchJsonOpenapiMethodWithBodyArguments<M, TPath>[2]
-) => Promise<FetchJsonMethodResult<TResult>>
-
-export type FetchJsonOpenapiMethodWithoutBody = <TPath extends keyof paths, TResult extends object = any>(
-  input: FetchJsonOpenapiMethodWithoutBodyArguments<TPath>[0],
-  init?: FetchJsonOpenapiMethodWithoutBodyArguments<TPath>[1]
-) => Promise<FetchJsonMethodResult<TResult>>
-
-export type FetchJsonOpenapiMethod<M extends HttpMethod> = M extends HttpMethodsWithoutBody
-  ? FetchJsonOpenapiMethodWithoutBody
-  : FetchJsonOpenapiMethodWithBody
-
 const createFetchJsonOpenApiMethod = <M extends HttpMethod>(httpMethod: M) => {
   if (isHttpMethodHasBody(httpMethod)) {
     return async <TPath extends keyof paths>(
-      input: FetchJsonOpenapiMethodWithBodyArguments<M, TPath>[0],
-      payload?: FetchJsonOpenapiMethodWithBodyArguments<M, TPath>[1],
-      init?: FetchJsonOpenapiMethodWithBodyArguments<M, TPath>[2]
+      input: TPath,
+      payload?: ApiEndpointRequest<M, TPath>,
+      init?: RequestInit
     ) => {
       const { data } = await fetchJson[httpMethod].call(null, input, payload, init)
       return data as Promise<ApiEndpointResponseSuccess<M, TPath>>
     }
   } else {
-    return async <TPath extends keyof paths>(
-      input: FetchJsonOpenapiMethodWithoutBodyArguments<TPath>[0],
-      init?: FetchJsonOpenapiMethodWithoutBodyArguments<TPath>[1]
-    ) => {
+    return async <TPath extends keyof paths>(input: TPath, init?: RequestInit) => {
       const { data } = await fetchJson[httpMethod].call(null, input, init)
       return data as Promise<ApiEndpointResponseSuccess<M, TPath>>
     }
@@ -109,15 +62,15 @@ export const fetchJsonOpenApi = {
   }, {} as FetchJsonOpenApi),
 }
 
-const yyy = fetchJsonOpenApi.post('/auth/signIn', { username: 's', password: 'd' }, {}).then(data => data.debugSessionId) // TODO type error here
+const xxx = fetchJsonOpenApi
+  .post('/auth/signIn', { username: 's', password: 'd' }, {})
+  .then((data) => data.debugSessionId)
 
-const post = <TPath extends keyof paths>(...args: FetchJsonOpenapiMethodArguments<'post', TPath>) => {
-  // if (isArgumentsHasBody('post', args)) {
-  return fetchJson.post(...args)
-  // }
-}
-
-post('/auth/signIn', { username: 's', password: 'f' }, {})
+const yyy = fetchJsonOpenApi
+  // @ts-expect-error
+  .post('/auth/signIn', { userame: 's', password: 'd' }, {})
+  // @ts-expect-error
+  .then((data) => data.debugSesionId)
 
 type E = {
   e1: {
