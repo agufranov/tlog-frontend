@@ -25,14 +25,13 @@ type FetchJsonOpenApi = {
   [httpMethod in HttpMethod]: ReturnType<typeof createFetchJsonOpenApiMethod<httpMethod>>
 }
 
-export const fetchJsonOpenApi = {
-  ...HTTP_METHODS.reduce((acc, httpMethod) => {
-    return {
-      ...acc,
-      [httpMethod]: createFetchJsonOpenApiMethod(httpMethod),
-    }
-  }, {} as FetchJsonOpenApi),
-}
+export const fetchJsonOpenApi = HTTP_METHODS.reduce(
+  (acc, httpMethod) => ({
+    ...acc,
+    [httpMethod]: createFetchJsonOpenApiMethod(httpMethod),
+  }),
+  {} as FetchJsonOpenApi
+)
 
 // const xxx = fetchJsonOpenApi
 //   .post('/auth/signIn', { username: 's', password: 'd' }, {})

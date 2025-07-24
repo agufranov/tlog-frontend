@@ -84,12 +84,13 @@ const createUseFetchJson = (httpMethod: HttpMethod) => {
   }
 }
 
-export const useFetchJson = HTTP_METHODS.reduce((acc, httpMethod) => {
-  return {
+export const useFetchJson = HTTP_METHODS.reduce(
+  (acc, httpMethod) => ({
     ...acc,
     [httpMethod]: createUseFetchJson(httpMethod),
-  }
-}, {} as UseFetchJson)
+  }),
+  {} as UseFetchJson
+)
 
 // const sss = useFetchJson.post<{ s: string }, { a: number }>('/api/auth/profile')
 // sss.fetch({ s: 's' }).then((res) => res.a)

@@ -81,16 +81,14 @@ export type FetchJson = {
   >
 }
 
-export const fetchJson: FetchJson = {
-  ...HTTP_METHODS.reduce(
-    (acc, httpMethod) => ({
-      ...acc,
-      [httpMethod]: isHttpMethodHasBody(httpMethod)
-        ? createFetchJsonMethodWithBody(httpMethod)
-        : createFetchJsonMethodWithoutBody(httpMethod),
-    }),
-    {} as FetchJson
-  ),
-}
+export const fetchJson: FetchJson = HTTP_METHODS.reduce(
+  (acc, httpMethod) => ({
+    ...acc,
+    [httpMethod]: isHttpMethodHasBody(httpMethod)
+      ? createFetchJsonMethodWithBody(httpMethod)
+      : createFetchJsonMethodWithoutBody(httpMethod),
+  }),
+  {} as FetchJson
+)
 
 // fetchJson.post<{ a: number }, { b: string }>('/api/test/a', { a: 2 }, {}).then((x) => x.data.b)
