@@ -38,7 +38,6 @@ export type FetchJsonMethod<M extends HttpMethod> = M extends HttpMethodsWithout
 export type FetchJson = {
   [httpMethod in HttpMethod]: FetchJsonMethod<httpMethod>
 }
-
 export const isMethodHasBody = <M extends HttpMethod>(
   httpMethod: M,
   method: FetchJsonMethodWithBody | FetchJsonMethodWithoutBody
@@ -46,8 +45,9 @@ export const isMethodHasBody = <M extends HttpMethod>(
   return isHttpMethodHasBody(httpMethod)
 }
 
-const isArgumentsHasBody = <Method extends HttpMethod, TPayload extends object>(
-  method: Method,
+const isArgumentsHasBody = <M extends HttpMethod, TPayload extends object>(
+  method: M,
+  // args: FetchJsonMethodWithBodyArguments<TPayload> | FetchJsonMethodWithoutBodyArguments
   args: FetchJsonMethodWithBodyArguments<TPayload> | FetchJsonMethodWithoutBodyArguments
 ): args is FetchJsonMethodWithBodyArguments<TPayload> => {
   return isHttpMethodHasBody(method)
@@ -74,9 +74,9 @@ const createFetchOptions = <TPayload extends object>(
 }
 
 const createFetchJsonMethod = <TPayload extends object, TResult extends object>(httpMethod: HttpMethod) => {
-  type Args = FetchJsonMethodArguments<typeof httpMethod, TPayload>
-
-  return async (...args: Args): Promise<FetchJsonMethodResult<TResult>> => {
+  return async (
+    ...args: FetchJsonMethodArguments<typeof httpMethod, TPayload>
+  ): Promise<FetchJsonMethodResult<TResult>> => {
     const hasBody = isArgumentsHasBody(httpMethod, args)
 
     const [input, payload, init] = hasBody ? args : [args[0], undefined, args[1]]
