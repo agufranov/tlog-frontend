@@ -76,31 +76,22 @@ export type FetchJsonOpenapiMethod<M extends HttpMethod> = M extends HttpMethods
 
 const createFetchJsonOpenApiMethod = <M extends HttpMethod>(httpMethod: M) => {
   if (isHttpMethodHasBody(httpMethod)) {
-    return <TPath extends keyof paths>(
+    return async <TPath extends keyof paths>(
       input: FetchJsonOpenapiMethodWithBodyArguments<M, TPath>[0],
       payload?: FetchJsonOpenapiMethodWithBodyArguments<M, TPath>[1],
       init?: FetchJsonOpenapiMethodWithBodyArguments<M, TPath>[2]
-    ) => fetchJson[httpMethod].call(null, input, payload, init)
+    ) => {
+      const { data } = await fetchJson[httpMethod].call(null, input, payload, init)
+      return data as Promise<ApiEndpointResponseSuccess<M, TPath>>
+    }
   } else {
-    type Args = FetchJsonOpenapiMethodWithoutBodyArguments<keyof paths>
-    return <TPath extends keyof paths>(
+    return async <TPath extends keyof paths>(
       input: FetchJsonOpenapiMethodWithoutBodyArguments<TPath>[0],
       init?: FetchJsonOpenapiMethodWithoutBodyArguments<TPath>[1]
-    ) => fetchJson[httpMethod].call(null, input, init)
-  }
-  // return async (...args) => {
-  return async <TPath extends keyof paths>(
-    ...args: FetchJsonOpenapiMethodWithBodyArguments<M, TPath> | FetchJsonOpenapiMethodWithoutBodyArguments<TPath>
-  ) => {
-    type TPayload = ApiEndpointRequest<M, TPath>
-    type TResult = ApiEndpointResponseSuccess<typeof httpMethod, TPath>
-
-    const hasBody = isArgumentsHasBody<M, TPath>(httpMethod, args)
-    const [input, payload, init] = hasBody ? args : [args[0], undefined, args[1]]
-    const fetchMethod = fetchJson[httpMethod]
-    return isArgumentsHasBody(httpMethod, args)
-      ? fetchMethod.call(null, input, payload, init)
-      : fetchMethod.call(null, input, init)
+    ) => {
+      const { data } = await fetchJson[httpMethod].call(null, input, init)
+      return data as Promise<ApiEndpointResponseSuccess<M, TPath>>
+    }
   }
 }
 
@@ -118,13 +109,7 @@ export const fetchJsonOpenApi = {
   }, {} as FetchJsonOpenApi),
 }
 
-const xxx: FetchJsonOpenapiMethodArguments<'post', '/auth/signIn'> = [
-  '/auth/signIn',
-  { username: 's', password: 'f' },
-  {},
-]
-
-const yyy = fetchJsonOpenApi.post('/auth/signIn', { username: 's', password: 'd' }, {}) // TODO type error here
+const yyy = fetchJsonOpenApi.post('/auth/signIn', { username: 's', password: 'd' }, {}).then(data => data.debugSessionId) // TODO type error here
 
 const post = <TPath extends keyof paths>(...args: FetchJsonOpenapiMethodArguments<'post', TPath>) => {
   // if (isArgumentsHasBody('post', args)) {
