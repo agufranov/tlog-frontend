@@ -14,7 +14,10 @@ export type ApiEndpointRequest<M extends HttpMethod, T extends keyof paths> = 'r
   T
 >
   ? 'content' extends keyof ApiEndpoint<M, T>['requestBody']
-    ? X<ApiEndpoint<M, T>['requestBody']['content'], 'application/json'>
+    ? // ? X<ApiEndpoint<M, T>['requestBody']['content'], 'application/json'>
+      'application/json' extends keyof ApiEndpoint<M, T>['requestBody']['content']
+      ? ApiEndpoint<M, T>['requestBody']['content']['application/json'] & {}
+      : never
     : never
   : never
 
