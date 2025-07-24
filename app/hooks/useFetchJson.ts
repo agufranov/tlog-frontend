@@ -47,7 +47,6 @@ const createUseFetchJson = (httpMethod: HttpMethod) => {
         setError(undefined)
         setLoading(true)
 
-
         try {
           const fetchJsonMethod = fetchJson[httpMethod]
 
@@ -92,5 +91,5 @@ export const useFetchJson = HTTP_METHODS.reduce((acc, httpMethod) => {
   }
 }, {} as UseFetchJson)
 
-const sss = useFetchJson.post<{ s: string }, { a: number }>('/api/auth/profile')
-sss.fetch({ s: 's' }).then((res) => res.a)
+// const sss = useFetchJson.post<{ s: string }, { a: number }>('/api/auth/profile')
+// sss.fetch({ s: 's' }).then((res) => res.a)

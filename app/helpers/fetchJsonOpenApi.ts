@@ -34,12 +34,12 @@ export const fetchJsonOpenApi = {
   }, {} as FetchJsonOpenApi),
 }
 
-const xxx = fetchJsonOpenApi
-  .post('/auth/signIn', { username: 's', password: 'd' }, {})
-  .then((data) => data.debugSessionId)
+// const xxx = fetchJsonOpenApi
+//   .post('/auth/signIn', { username: 's', password: 'd' }, {})
+//   .then((data) => data.debugSessionId)
 
-const yyy = fetchJsonOpenApi
-  // @ts-expect-error
-  .post('/auth/signIn', { userame: 's', password: 'd' }, {})
-  // @ts-expect-error
-  .then((data) => data.debugSesionId)
+// const yyy = fetchJsonOpenApi
+//   // @ts-expect-error
+//   .post('/auth/signIn', { userame: 's', password: 'd' }, {})
+//   // @ts-expect-error
+//   .then((data) => data.debugSesionId)

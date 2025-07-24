@@ -93,4 +93,4 @@ export const fetchJson: FetchJson = {
   ),
 }
 
-fetchJson.post<{ a: number }, { b: string }>('/api/test/a', { a: 2 }, {}).then((x) => x.data.b)
+// fetchJson.post<{ a: number }, { b: string }>('/api/test/a', { a: 2 }, {}).then((x) => x.data.b)
