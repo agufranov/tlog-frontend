@@ -78,7 +78,7 @@ const createFetchJsonMethodWithoutBody = (httpMethod: HttpMethod, options: Creat
 
 export type FetchJsonMethodWithoutBody = ReturnType<typeof createFetchJsonMethodWithoutBody>
 
-type CreateFetchJsonOptions = {
+export type CreateFetchJsonOptions = {
   basePrefix?: string
   requestDefaults?: RequestInit
 }
