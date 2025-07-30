@@ -18,8 +18,6 @@ const createFetchOptions = <TPayload extends object>(
     headers: {
       'Content-Type': 'application/json',
     },
-    // TODO add customization
-    // credentials: 'include',
   }
 
   if (isHttpMethodHasBody(method)) {
@@ -31,18 +29,20 @@ const createFetchOptions = <TPayload extends object>(
 
 const performFetch = async <TPayload extends object, TResult extends object>(
   httpMethod: HttpMethod,
+  options: CreateFetchJsonOptions,
   input: string,
   payload?: TPayload,
   init?: RequestInit
 ) => {
-  const response = await fetch(input, {
+  const response = await fetch(`${options.basePrefix ?? ''}${input}`, {
     ...createFetchOptions(httpMethod, payload),
+    ...options.requestDefaults,
     ...init,
   })
 
   try {
     // TODO debug
-    await sleep(1000)
+    await sleep(800)
     const data: TResult = await response.json()
 
     return { response, data }
@@ -56,22 +56,32 @@ const performFetch = async <TPayload extends object, TResult extends object>(
   }
 }
 
-const createFetchJsonMethodWithBody = (httpMethod: HttpMethod) => {
+const createFetchJsonMethodWithBody = (httpMethod: HttpMethod, options: CreateFetchJsonOptions) => {
   return async <TPayload extends object, TResult extends object>(
     input: string,
     payload?: TPayload,
     init?: RequestInit
-  ) => performFetch<TPayload, TResult>(httpMethod, input, payload, init)
+  ) => performFetch<TPayload, TResult>(httpMethod, options, input, payload, init)
 }
 
 export type FetchJsonMethodWithBody = ReturnType<typeof createFetchJsonMethodWithBody>
 
-const createFetchJsonMethodWithoutBody = (httpMethod: HttpMethod) => {
+export const isMethodHasBody = (
+  httpMethod: HttpMethod,
+  method: FetchJsonMethodWithBody | FetchJsonMethodWithoutBody
+): method is FetchJsonMethodWithBody => isHttpMethodHasBody(httpMethod)
+
+const createFetchJsonMethodWithoutBody = (httpMethod: HttpMethod, options: CreateFetchJsonOptions) => {
   return async <TResult extends object>(input: string, init?: RequestInit) =>
-    performFetch<never, TResult>(httpMethod, input, undefined, init)
+    performFetch<never, TResult>(httpMethod, options, input, undefined, init)
 }
 
 export type FetchJsonMethodWithoutBody = ReturnType<typeof createFetchJsonMethodWithoutBody>
+
+type CreateFetchJsonOptions = {
+  basePrefix?: string
+  requestDefaults?: RequestInit
+}
 
 export type FetchJson = {
   [httpMethod in HttpMethod]: ReturnType<
@@ -79,16 +89,23 @@ export type FetchJson = {
       ? typeof createFetchJsonMethodWithoutBody
       : typeof createFetchJsonMethodWithBody
   >
+} & { createWithDefaults: (options: CreateFetchJsonOptions) => FetchJson }
+
+const createFetchJson = (options: CreateFetchJsonOptions): FetchJson => {
+  return {
+    ...HTTP_METHODS.reduce(
+      (acc, httpMethod) => ({
+        ...acc,
+        [httpMethod]: isHttpMethodHasBody(httpMethod)
+          ? createFetchJsonMethodWithBody(httpMethod, options)
+          : createFetchJsonMethodWithoutBody(httpMethod, options),
+      }),
+      {} as FetchJson
+    ),
+    createWithDefaults: createFetchJson,
+  }
 }
 
-export const fetchJson: FetchJson = HTTP_METHODS.reduce(
-  (acc, httpMethod) => ({
-    ...acc,
-    [httpMethod]: isHttpMethodHasBody(httpMethod)
-      ? createFetchJsonMethodWithBody(httpMethod)
-      : createFetchJsonMethodWithoutBody(httpMethod),
-  }),
-  {} as FetchJson
-)
+export const fetchJson: FetchJson = createFetchJson({})
 
 // fetchJson.post<{ a: number }, { b: string }>('/api/test/a', { a: 2 }, {}).then((x) => x.data.b)

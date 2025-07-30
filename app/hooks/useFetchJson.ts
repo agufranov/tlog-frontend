@@ -1,13 +1,8 @@
 import { useCallback, useState } from 'react'
-import {
-  fetchJson,
-  type FetchArguments,
-  type FetchJsonMethodWithBody,
-  type FetchJsonMethodWithoutBody,
-} from '~/helpers/fetchJson'
-import { HTTP_METHODS, isHttpMethodHasBody, type HttpMethod, type HttpMethodsWithoutBody } from '~/helpers/httpMethods'
+import { fetchJson, isMethodHasBody, type FetchArguments } from '~/helpers/fetchJson'
+import { HTTP_METHODS, type HttpMethod, type HttpMethodsWithoutBody } from '~/helpers/httpMethods'
 
-interface UseFetchJsonMethodWithoutPayloadResult<TResult extends object> {
+export interface UseFetchJsonMethodWithoutPayloadResult<TResult extends object> {
   value: TResult
   loading: boolean
   error: any
@@ -15,20 +10,13 @@ interface UseFetchJsonMethodWithoutPayloadResult<TResult extends object> {
   fetch: () => Promise<TResult>
 }
 
-interface UseFetchJsonMethodWithPayloadResult<TPayload extends object, TResult extends object>
+export interface UseFetchJsonMethodWithPayloadResult<TPayload extends object, TResult extends object>
   extends UseFetchJsonMethodWithoutPayloadResult<TResult> {
   fetch: (payload?: TPayload) => Promise<TResult>
 }
 
 type UseFetchJson = {
   [httpMethod in HttpMethod]: ReturnType<typeof createUseFetchJson>
-}
-
-const isMethodHasBody = (
-  httpMethod: HttpMethod,
-  method: FetchJsonMethodWithBody | FetchJsonMethodWithoutBody
-): method is FetchJsonMethodWithBody => {
-  return isHttpMethodHasBody(httpMethod)
 }
 
 const createUseFetchJson = (httpMethod: HttpMethod) => {

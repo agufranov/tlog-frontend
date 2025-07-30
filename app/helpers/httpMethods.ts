@@ -7,4 +7,4 @@ export const HTTP_METHODS_WITHOUT_BODY = ['head', 'get'] as const satisfies Http
 export type HttpMethodsWithoutBody = (typeof HTTP_METHODS_WITHOUT_BODY)[number]
 export type HttpMethodsWithBody = Exclude<HttpMethod, HttpMethodsWithoutBody>
 
-export const isHttpMethodHasBody = (method: HttpMethod) => !(HTTP_METHODS_WITHOUT_BODY as HttpMethod[]).includes(method)
+export const isHttpMethodHasBody = (method: HttpMethod): method is HttpMethodsWithBody => !(HTTP_METHODS_WITHOUT_BODY as HttpMethod[]).includes(method)
