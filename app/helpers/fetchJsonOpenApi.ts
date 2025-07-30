@@ -1,59 +1,37 @@
-import { fetchJson, isMethodHasBody, type CreateFetchJsonOptions, type FetchJson } from './fetchJson'
-import { HTTP_METHODS, type HttpMethod } from './httpMethods'
+import type { paths } from 'api'
+import { fetchJson, type FetchResult } from './fetchJson'
+import { type HttpMethod, type HttpMethodsWithoutBody } from './httpMethods'
 import type { ApiEndpointRequest, ApiEndpointResponseSuccess, RoutesWithMethod } from './openApiTypes'
 
-type T<Paths extends Record<string, any>, M extends string> = M extends keyof Paths ? M : never
+type FetchJsonOpenApiMethodWithBody<Paths extends Record<string, any>, M extends HttpMethod> = <
+  TPath extends RoutesWithMethod<Paths, M>
+>(
+  input: TPath,
+  payload: ApiEndpointRequest<Paths, M, TPath>,
+  init?: RequestInit
+) => Promise<FetchResult<ApiEndpointResponseSuccess<Paths, M, TPath>>>
 
-const createFetchJsonOpenApiMethod = <Paths extends Record<string, any>, M extends HttpMethod>(
-  fetchJsonWithOptions: FetchJson,
-  httpMethod: M
-) => {
-  const fetchJsonMethod = fetchJsonWithOptions[httpMethod]
-  if (isMethodHasBody(httpMethod, fetchJsonMethod)) {
-    return async <TPath extends RoutesWithMethod<Paths, M>>(
-      input: TPath,
-      payload?: ApiEndpointRequest<Paths, M, TPath>,
-      init?: RequestInit
-    ) => {
-      const { data } = await fetchJsonMethod(input, payload, init)
-      return data as Promise<ApiEndpointResponseSuccess<Paths, M, TPath>>
-    }
-  } else {
-    return async <TPath extends RoutesWithMethod<Paths, M>>(input: TPath, init?: RequestInit) => {
-      const { data } = await fetchJsonMethod(input, init)
-      return data as Promise<ApiEndpointResponseSuccess<Paths, M, TPath>>
-    }
-  }
+type FetchJsonOpenApiMethodWithoutBody<Paths extends Record<string, any>, M extends HttpMethod> = <
+  TPath extends RoutesWithMethod<Paths, M>
+>(
+  input: TPath,
+  init?: RequestInit
+) => Promise<FetchResult<ApiEndpointResponseSuccess<Paths, M, TPath>>>
+
+export type FetchJsonOpenApi<Paths extends Record<string, any>> = {
+  [httpMethod in HttpMethod]: httpMethod extends HttpMethodsWithoutBody
+    ? FetchJsonOpenApiMethodWithoutBody<Paths, httpMethod>
+    : FetchJsonOpenApiMethodWithBody<Paths, httpMethod>
 }
 
-type FetchJsonOpenApi<Paths extends Record<string, any>> = {
-  // [httpMethod in HttpMethod]: FetchJsonOpenApiMethod<httpMethod>
-  [httpMethod in HttpMethod]: ReturnType<typeof createFetchJsonOpenApiMethod<Paths, httpMethod>>
-} & { createWithDefaults: (options: CreateFetchJsonOptions) => FetchJsonOpenApi<Paths> }
+const fetchJsonOpenApi = fetchJson as FetchJsonOpenApi<paths>
 
-export const createFetchJsonOpenApi = <Paths extends Record<string, any>>(options: CreateFetchJsonOptions) => {
-  const fetchJsonWithOptions = fetchJson.createWithDefaults(options)
+const xxx = fetchJsonOpenApi
+  .post('/auth/signIn', { username: 's', password: 'd' }, {})
+  .then(({ data }) => data.debugSessionId)
 
-  return {
-    ...HTTP_METHODS.reduce(
-      (acc, httpMethod) => ({
-        ...acc,
-        [httpMethod]: createFetchJsonOpenApiMethod(fetchJsonWithOptions, httpMethod),
-      }),
-      {} as FetchJsonOpenApi<Paths>
-    ),
-    createWithDefaults: createFetchJsonOpenApi,
-  }
-}
-
-// const fetchJsonOpenApi = createFetchJsonOpenApi<paths>({})
-
-// const xxx = fetchJsonOpenApi
-//   .post('/auth/signIn', { username: 's', password: 'd' }, {})
-//   .then((data) => data.debugSessionId)
-
-// const yyy = fetchJsonOpenApi
-//   // @ts-expect-error
-//   .post('/auth/signIn', { userame: 's', password: 'd' }, {})
-//   // @ts-expect-error
-//   .then((data) => data.debugSesionId)
+const yyy = fetchJsonOpenApi
+  // @ts-expect-error
+  .post('/auth/signIn', { userame: 's', password: 'd' }, {})
+  // @ts-expect-error
+  .then(({ data }) => data.debugSesionId)

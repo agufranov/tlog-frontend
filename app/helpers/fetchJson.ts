@@ -27,13 +27,18 @@ const createFetchOptions = <TPayload extends object>(
   return options
 }
 
+export type FetchResult<T extends object> = {
+  response: Response
+  data: T
+}
+
 const performFetch = async <TPayload extends object, TResult extends object>(
   httpMethod: HttpMethod,
   options: CreateFetchJsonOptions,
   input: string,
   payload?: TPayload,
   init?: RequestInit
-) => {
+): Promise<FetchResult<TResult>> => {
   const response = await fetch(`${options.basePrefix ?? ''}${input}`, {
     ...createFetchOptions(httpMethod, payload),
     ...options.requestDefaults,
@@ -56,7 +61,16 @@ const performFetch = async <TPayload extends object, TResult extends object>(
   }
 }
 
-const createFetchJsonMethodWithBody = (httpMethod: HttpMethod, options: CreateFetchJsonOptions) => {
+export type FetchJsonMethodWithBody = <TPayload extends object, TResult extends object>(
+  input: string,
+  payload?: TPayload,
+  init?: RequestInit
+) => Promise<FetchResult<TResult>>
+
+const createFetchJsonMethodWithBody = (
+  httpMethod: HttpMethod,
+  options: CreateFetchJsonOptions
+): FetchJsonMethodWithBody => {
   return async <TPayload extends object, TResult extends object>(
     input: string,
     payload?: TPayload,
@@ -64,19 +78,23 @@ const createFetchJsonMethodWithBody = (httpMethod: HttpMethod, options: CreateFe
   ) => performFetch<TPayload, TResult>(httpMethod, options, input, payload, init)
 }
 
-export type FetchJsonMethodWithBody = ReturnType<typeof createFetchJsonMethodWithBody>
+export type FetchJsonMethodWithoutBody = <TResult extends object>(
+  input: string,
+  init?: RequestInit
+) => Promise<FetchResult<TResult>>
+
+const createFetchJsonMethodWithoutBody = (
+  httpMethod: HttpMethod,
+  options: CreateFetchJsonOptions
+): FetchJsonMethodWithoutBody => {
+  return async <TResult extends object>(input: string, init?: RequestInit) =>
+    performFetch<never, TResult>(httpMethod, options, input, undefined, init)
+}
 
 export const isMethodHasBody = (
   httpMethod: HttpMethod,
   method: FetchJsonMethodWithBody | FetchJsonMethodWithoutBody
 ): method is FetchJsonMethodWithBody => isHttpMethodHasBody(httpMethod)
-
-const createFetchJsonMethodWithoutBody = (httpMethod: HttpMethod, options: CreateFetchJsonOptions) => {
-  return async <TResult extends object>(input: string, init?: RequestInit) =>
-    performFetch<never, TResult>(httpMethod, options, input, undefined, init)
-}
-
-export type FetchJsonMethodWithoutBody = ReturnType<typeof createFetchJsonMethodWithoutBody>
 
 export type CreateFetchJsonOptions = {
   basePrefix?: string
@@ -84,11 +102,9 @@ export type CreateFetchJsonOptions = {
 }
 
 export type FetchJson = {
-  [httpMethod in HttpMethod]: ReturnType<
-    httpMethod extends HttpMethodsWithoutBody
-      ? typeof createFetchJsonMethodWithoutBody
-      : typeof createFetchJsonMethodWithBody
-  >
+  [httpMethod in HttpMethod]: httpMethod extends HttpMethodsWithoutBody
+    ? FetchJsonMethodWithoutBody
+    : FetchJsonMethodWithBody
 } & { createWithDefaults: (options: CreateFetchJsonOptions) => FetchJson }
 
 const createFetchJson = (options: CreateFetchJsonOptions): FetchJson => {
