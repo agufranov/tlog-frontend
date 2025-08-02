@@ -2,48 +2,40 @@ import type { HttpMethod } from './httpMethods'
 
 type ApiRoute<Paths extends Record<string, any>, T extends keyof Paths> = Paths[T]
 
-// TODO rename
-type X<O, K> = K extends keyof O ? O[K] : never
+type GetTypeByPath<T, Path extends string> = string extends Path
+  ? never // Защита от неправильного использования string
+  : Path extends keyof T
+  ? T[Path] // Базовый случай: Path - это непосредственный ключ T
+  : Path extends `${infer Key}.${infer Rest}` // Рекурсивный случай: Path содержит точку
+  ? Key extends keyof T
+    ? GetTypeByPath<T[Key], Rest> // Рекурсивный вызов GetType с вложенным типом и остатком пути
+    : never // Key не является ключом T
+  : never // Path не является путем в T
 
-type ApiEndpoint<Paths extends Record<string, any>, M extends HttpMethod, T extends keyof Paths> = X<
+type ApiEndpoint<Paths extends Record<string, any>, M extends HttpMethod, T extends keyof Paths> = GetTypeByPath<
   ApiRoute<Paths, T>,
   M
 >
-// type ApiEndpoint<M extends HttpMethod, T extends keyof paths> = M extends keyof ApiRouteName<T> ? ApiRouteName<T>[M] : never
 
 export type ApiEndpointRequest<
   Paths extends Record<string, any>,
   M extends HttpMethod,
+  T extends keyof Paths & string
+> = GetTypeByPath<Paths, `${T}.${M}.requestBody.content.application/json`> & {}
+
+type ApiEndpointResponses<
+  Paths extends Record<string, any>,
+  M extends HttpMethod,
   T extends keyof Paths
-> = 'requestBody' extends keyof ApiEndpoint<Paths, M, T>
-  ? 'content' extends keyof ApiEndpoint<Paths, M, T>['requestBody']
-    ? // ? X<ApiEndpoint<M, T>['requestBody']['content'], 'application/json'>
-      'application/json' extends keyof ApiEndpoint<Paths, M, T>['requestBody']['content']
-      ? ApiEndpoint<Paths, M, T>['requestBody']['content']['application/json'] & {}
-      : never
-    : never
-  : never
+> = GetTypeByPath<ApiEndpoint<Paths, M, T>, 'responses'>
 
-type ApiEndpointResponses<Paths extends Record<string, any>, M extends HttpMethod, T extends keyof Paths> = X<
-  ApiEndpoint<Paths, M, T>,
-  'responses'
->
-
-// type ApiEndpointResponses<M extends HttpMethod, T extends keyof paths> = 'responses' extends keyof ApiEndpoint<M, T>
-//   ? ApiEndpoint<M, T>['responses']
-//   : never
-
-// ODO handle errors too
+// TODO handle errors too
 export type ApiEndpointResponseSuccess<
   Paths extends Record<string, any>,
   M extends HttpMethod,
   T extends keyof Paths
 > = 200 extends keyof ApiEndpointResponses<Paths, M, T>
-  ? 'content' extends keyof ApiEndpointResponses<Paths, M, T>[200]
-    ? 'application/json' extends keyof ApiEndpointResponses<Paths, M, T>[200]['content']
-      ? ApiEndpointResponses<Paths, M, T>[200]['content']['application/json'] & {}
-      : never
-    : never
+  ? GetTypeByPath<ApiEndpointResponses<Paths, M, T>[200], 'content.application/json'> & {}
   : never
 
 export type ApiRouteHasMethod<
