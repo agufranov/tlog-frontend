@@ -14,7 +14,7 @@ export namespace XTyped {
 
   abstract class Schema<T extends Types> implements Type<T> {
     abstract type: T
-    abstract validate(o: unknown): o is Infer<this>
+    abstract validate(value: unknown): value is Infer<this>
   }
 
   export interface IString extends Type<Types.STRING> {}
@@ -24,40 +24,63 @@ export namespace XTyped {
   export interface IBoolean extends Type<Types.BOOLEAN> {}
 
   export interface IObject<T extends { [key: string]: Value }> extends Type<Types.OBJECT> {
-    value: T
+    schema: T
   }
 
   export interface IArray<T extends Value> extends Type<Types.ARRAY> {
-    elementValue: T
+    schema: T
+  }
+
+  export interface IUnion<T extends Value[]> extends Type<Types.UNION> {
+    schema: T
   }
 
   export class String extends Schema<Types.STRING> {
     type = Types.STRING as const
 
-    validate(o: unknown): o is Infer<this> {
-      return typeof o === 'string'
+    validate(value: unknown): value is Infer<this> {
+      return typeof value === 'string'
     }
   }
   export class Number extends Schema<Types.NUMBER> {
     type = Types.NUMBER as const
 
-    validate(o: unknown): o is Infer<this> {
-      return typeof o === 'number'
+    validate(value: unknown): value is Infer<this> {
+      return typeof value === 'number'
     }
   }
 
   export class Boolean extends Schema<Types.BOOLEAN> {
     type = Types.BOOLEAN as const
 
-    validate(o: unknown): o is Infer<this> {
-      return typeof o === 'boolean'
+    validate(value: unknown): value is Infer<this> {
+      return typeof value === 'boolean'
     }
   }
 
-  export class Object<T> extends Schema<Types.OBJECT> {
+  export class Object<T extends { [key: string]: Schema<any> }> extends Schema<Types.OBJECT> {
     type = Types.OBJECT as const
 
-    constructor(public value: T) {
+    constructor(public schema: T) {
+      super()
+    }
+
+    validate(value: unknown): value is Infer<this> {
+      if (typeof value !== 'object' || value === null) return false
+
+      for (let key in this.schema) {
+        // TODO strict?
+        if (!this.schema[key]?.validate(value[key as keyof typeof value])) return false
+      }
+
+      return true
+    }
+  }
+
+  export class Array<T> extends Schema<Types.ARRAY> {
+    type = Types.ARRAY as const
+
+    constructor(public schema: T) {
       super()
     }
 
@@ -67,10 +90,10 @@ export namespace XTyped {
     }
   }
 
-  export class Array<T> extends Schema<Types.ARRAY> {
-    type = Types.ARRAY as const
+  export class Union<T> extends Schema<Types.UNION> {
+    type = Types.UNION as const
 
-    constructor(public elementValue: T) {
+    constructor(public schema: T) {
       super()
     }
 
@@ -82,37 +105,31 @@ export namespace XTyped {
 
   export type Value = IString | INumber | IBoolean | IObject<{}> | IArray<Value> | IUnion<Value[]>
 
-  type ArrayElement<T extends any[]> = T extends (infer U)[] ? U : never
-
   export type Infer<T> = T extends IString
     ? string
     : T extends INumber
     ? number
     : T extends IBoolean
     ? boolean
-    : T extends IObject<infer O>
-    ? { [key in keyof O]: Infer<O[key]> }
-    : T extends IArray<infer E>
-    ? Infer<E>[]
-    : T extends IUnion<infer U>
-    ? Infer<ArrayElement<U>>
+    : T extends IObject<infer U>
+    ? { [key in keyof U]: Infer<U[key]> }
+    : T extends IArray<infer U>
+    ? Infer<U>[]
+    : T extends IUnion<(infer U extends Value)[]>
+    ? Infer<U>
     : never
-
-  export interface IUnion<T extends Value[]> extends Type<Types.UNION> {
-    value: T
-  }
 }
 
 export const t = {
   string: () => new XTyped.String(),
   number: () => new XTyped.Number(),
   boolean: () => new XTyped.Boolean(),
-  object: <T extends { [key: string]: XTyped.Value }>(value: T) => new XTyped.Object<T>(value),
-  array: <T extends XTyped.Value>(elementValue: T) => new XTyped.Array<T>(elementValue),
-  union: <T extends XTyped.Value[]>(value: T): XTyped.IUnion<T> => ({ type: XTyped.Types.UNION, value }),
+  object: <T extends { [key: string]: XTyped.Value }>(schema: T) => new XTyped.Object<T>(schema),
+  array: <T extends XTyped.Value>(schema: T) => new XTyped.Array<T>(schema),
+  union: <T extends XTyped.Value[]>(schema: T) => new XTyped.Union<T>(schema),
 }
 
-const u = t.union([t.string(), t.number(), t.boolean()])
+const u = t.union([t.string(), t.number(), t.array(t.boolean())])
 type TU = XTyped.Infer<typeof u>
 
 const a = t.object({
@@ -130,9 +147,9 @@ type TA = XTyped.Infer<typeof a>
 
 const o: unknown = { x: 2, y: '2' }
 
-// if (t.string().validate(o)) {
-//   o
-// }
+if (u.validate(o)) {
+  o
+}
 if (a.validate(o)) {
   o
 }

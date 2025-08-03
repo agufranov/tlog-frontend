@@ -1,4 +1,4 @@
-import { t, type XTyped } from './test'
+import { t, type XTyped } from './xtyped'
 
 const a = t.string()
 const b = t.number()
