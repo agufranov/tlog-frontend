@@ -23,10 +23,8 @@ export namespace XTyped {
 
   export interface IBoolean extends Type<Types.BOOLEAN> {}
 
-  export interface IObject<T> extends Type<Types.OBJECT> {
-    value: {
-      [key: string]: Value<T>
-    }
+  export interface IObject<T extends { [key: string]: Value<T> }> extends Type<Types.OBJECT> {
+    value: T
   }
 
   export interface IArray<T> extends Type<Types.ARRAY> {
@@ -59,11 +57,7 @@ export namespace XTyped {
   export class Object<T> extends Schema<Types.OBJECT> {
     type = Types.OBJECT as const
 
-    constructor(
-      public value: {
-        [key: string]: Value<T>
-      }
-    ) {
+    constructor(public value: T) {
       super()
     }
 
@@ -86,7 +80,7 @@ export namespace XTyped {
     }
   }
 
-  export type Value<T> = IString | INumber | IBoolean | IObject<T> | IArray<T> | IUnion<unknown[]>
+  export type Value<T> = IString | INumber | IBoolean | IObject<{}> | IArray<T> | IUnion<unknown[]>
 
   type ArrayElement<T extends any[]> = T extends (infer U)[] ? U : never
 
@@ -110,8 +104,7 @@ export namespace XTyped {
 }
 
 export const t = {
-  // string: () => new XTyped.String(),
-  string: (): XTyped.IString => ({ type: XTyped.Types.STRING }),
+  string: () => new XTyped.String(),
   number: () => new XTyped.Number(),
   boolean: () => new XTyped.Boolean(),
   object: <T extends { [key: string]: XTyped.Value<T> }>(value: T) => new XTyped.Object<T>(value),
