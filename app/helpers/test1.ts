@@ -9,9 +9,22 @@ const c = t.object({
     z1: t.number(),
     z2: t.string(),
     zb: t.boolean(),
+    zo: t.object({
+      zo1: t.number(),
+      zo2: t.string(),
+    }),
   }),
+})
+const o = t.object({
+  a: t.number(),
+  b: t.string(),
 })
 
 type T1 = XTyped.Infer<typeof a>
 type T2 = XTyped.Infer<typeof b>
 type T3 = XTyped.Infer<typeof c>
+
+const d: unknown = {}
+if (c.validate(d)) {
+  d
+}
