@@ -8,6 +8,7 @@ const c = t.object({
   z: t.object({
     z1: t.number(),
     z2: t.string(),
+    zb: t.boolean(),
   }),
 })
 
