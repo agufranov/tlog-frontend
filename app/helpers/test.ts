@@ -1,24 +1,36 @@
-type TypedString = {
-  __type: 'string'
-}
-
-type TypedNumber = {
-  __type: 'number'
-}
-
-type TypedObject<T> = {
-  __type: 'object'
-  value: {
-    [key: string]: TypedString | TypedNumber | TypedObject<T>
+namespace XTyped {
+  export type String = {
+    __type: 'string'
   }
+
+  export type Number = {
+    __type: 'number'
+  }
+
+  export type Object<T> = {
+    __type: 'object'
+    value: {
+      [key: string]: Value<T>
+    }
+  }
+
+  export type Value<T> = String | Number | Object<T>
+
+  export type Infer<T> = T extends String
+    ? string
+    : T extends Number
+    ? number
+    : T extends Object<infer O>
+    ? { [key in keyof O]: Infer<O[key]> }
+    : never
 }
 
 const t = {
-  string: (): TypedString => ({ __type: 'string' }),
-  number: (): TypedNumber => ({ __type: 'number' }),
-  object: <T extends { [key: string]: TypedString | TypedNumber | TypedObject<T> }>(o: T): TypedObject<T> => ({
+  string: (): XTyped.String => ({ __type: 'string' }),
+  number: (): XTyped.Number => ({ __type: 'number' }),
+  object: <T extends { [key: string]: XTyped.Value<T> }>(value: T): XTyped.Object<T> => ({
     __type: 'object',
-    value: o,
+    value,
   }),
 }
 
@@ -33,14 +45,6 @@ const c = t.object({
   }),
 })
 
-type Infer<T> = T extends TypedString
-  ? string
-  : T extends TypedNumber
-  ? number
-  : T extends TypedObject<infer O>
-  ? { [key in keyof O]: Infer<O[key]> }
-  : never
-
-type T1 = Infer<typeof a>
-type T2 = Infer<typeof b>
-type T3 = Infer<typeof c>
+type T1 = XTyped.Infer<typeof a>
+type T2 = XTyped.Infer<typeof b>
+type T3 = XTyped.Infer<typeof c>
