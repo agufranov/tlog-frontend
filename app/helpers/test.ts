@@ -4,6 +4,7 @@ export namespace XTyped {
     NUMBER = 'number',
     BOOLEAN = 'boolean',
     OBJECT = 'object',
+    ARRAY = 'array',
   }
 
   interface Type<T extends Types> {
@@ -27,13 +28,30 @@ export namespace XTyped {
     }
   }
 
-  type T = Infer<Schema<Types.OBJECT>>
+  export interface IArray<T> extends Type<Types.ARRAY> {
+    elementValue: Value<T>
+  }
 
   export class String extends Schema<Types.STRING> {
     type = Types.STRING as const
 
     validate(o: unknown): o is Infer<this> {
       return typeof o === 'string'
+    }
+  }
+  export class Number extends Schema<Types.NUMBER> {
+    type = Types.NUMBER as const
+
+    validate(o: unknown): o is Infer<this> {
+      return typeof o === 'number'
+    }
+  }
+
+  export class Boolean extends Schema<Types.BOOLEAN> {
+    type = Types.BOOLEAN as const
+
+    validate(o: unknown): o is Infer<this> {
+      return typeof o === 'boolean'
     }
   }
 
@@ -54,7 +72,22 @@ export namespace XTyped {
     }
   }
 
-  export type Value<T> = IString | INumber | IBoolean | IObject<T>
+  export class Array<T> extends Schema<Types.ARRAY> {
+    type = Types.ARRAY as const
+
+    constructor(public elementValue: Value<T>) {
+      super()
+    }
+
+    validate(o: unknown): o is Infer<this> {
+      // TODO
+      return true
+    }
+  }
+
+  export type PrimitiveValue = IString | INumber | IBoolean
+
+  export type Value<T> = IString | INumber | IBoolean | IObject<T> | IArray<T>
 
   export type Infer<T> = T extends IString
     ? string
@@ -64,25 +97,30 @@ export namespace XTyped {
     ? boolean
     : T extends IObject<infer O>
     ? { [key in keyof O]: Infer<O[key]> }
+    : T extends IArray<infer E>
+    ? Infer<E>[]
     : never
 }
 
 export const t = {
-  // string: (): XTyped.IString => ({ type: XTyped.Types.STRING }),
   string: () => new XTyped.String(),
-  number: (): XTyped.INumber => ({ type: XTyped.Types.NUMBER }),
-  boolean: (): XTyped.IBoolean => ({ type: XTyped.Types.BOOLEAN }),
+  number: () => new XTyped.Number(),
+  boolean: () => new XTyped.Boolean(),
   object: <T extends { [key: string]: XTyped.Value<T> }>(value: T) => new XTyped.Object<T>(value),
+  array: <U, T extends XTyped.Value<U>>(elementValue: T) => new XTyped.Array<T>(elementValue),
 }
 
 const a = t.object({
   x: t.number(),
   y: t.string(),
+  arr: t.array(t.array(t.boolean())),
   z: t.object({
     z1: t.number(),
     z2: t.string(),
   }),
 })
+
+type TA = XTyped.Infer<typeof a>
 
 const o: unknown = { x: 2, y: '2' }
 
