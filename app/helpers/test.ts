@@ -1,14 +1,19 @@
-namespace XTyped {
+export namespace XTyped {
+  export enum Types {
+    STRING = 'string',
+    NUMBER = 'number',
+    OBJECT = 'object',
+  }
   export type String = {
-    __type: 'string'
+    __type: Types.STRING
   }
 
   export type Number = {
-    __type: 'number'
+    __type: Types.NUMBER
   }
 
   export type Object<T> = {
-    __type: 'object'
+    __type: Types.OBJECT
     value: {
       [key: string]: Value<T>
     }
@@ -25,26 +30,11 @@ namespace XTyped {
     : never
 }
 
-const t = {
-  string: (): XTyped.String => ({ __type: 'string' }),
-  number: (): XTyped.Number => ({ __type: 'number' }),
+export const t = {
+  string: (): XTyped.String => ({ __type: XTyped.Types.STRING }),
+  number: (): XTyped.Number => ({ __type: XTyped.Types.NUMBER }),
   object: <T extends { [key: string]: XTyped.Value<T> }>(value: T): XTyped.Object<T> => ({
-    __type: 'object',
+    __type: XTyped.Types.OBJECT,
     value,
   }),
 }
-
-const a = t.string()
-const b = t.number()
-const c = t.object({
-  x: t.number(),
-  y: t.string(),
-  z: t.object({
-    z1: t.number(),
-    z2: t.string(),
-  }),
-})
-
-type T1 = XTyped.Infer<typeof a>
-type T2 = XTyped.Infer<typeof b>
-type T3 = XTyped.Infer<typeof c>
