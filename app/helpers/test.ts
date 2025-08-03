@@ -5,6 +5,7 @@ export namespace XTyped {
     BOOLEAN = 'boolean',
     OBJECT = 'object',
     ARRAY = 'array',
+    UNION = 'union',
   }
 
   interface Type<T extends Types> {
@@ -85,9 +86,9 @@ export namespace XTyped {
     }
   }
 
-  export type PrimitiveValue = IString | INumber | IBoolean
+  export type Value<T> = IString | INumber | IBoolean | IObject<T> | IArray<T> | IUnion<unknown[]>
 
-  export type Value<T> = IString | INumber | IBoolean | IObject<T> | IArray<T>
+  type ArrayElement<T extends any[]> = T extends (infer U)[] ? U : never
 
   export type Infer<T> = T extends IString
     ? string
@@ -99,20 +100,32 @@ export namespace XTyped {
     ? { [key in keyof O]: Infer<O[key]> }
     : T extends IArray<infer E>
     ? Infer<E>[]
+    : T extends IUnion<infer U>
+    ? Infer<ArrayElement<U>>
     : never
+
+  export interface IUnion<T extends any[]> extends Type<Types.UNION> {
+    value: Value<T>[]
+  }
 }
 
 export const t = {
-  string: () => new XTyped.String(),
+  // string: () => new XTyped.String(),
+  string: (): XTyped.IString => ({ type: XTyped.Types.STRING }),
   number: () => new XTyped.Number(),
   boolean: () => new XTyped.Boolean(),
   object: <T extends { [key: string]: XTyped.Value<T> }>(value: T) => new XTyped.Object<T>(value),
   array: <U, T extends XTyped.Value<U>>(elementValue: T) => new XTyped.Array<T>(elementValue),
+  union: <U, T extends XTyped.Value<U>[]>(value: T): XTyped.IUnion<T> => ({ type: XTyped.Types.UNION, value }),
 }
+
+const u = t.union([t.string(), t.number(), t.boolean()])
+type TU = XTyped.Infer<typeof u>
 
 const a = t.object({
   x: t.number(),
   y: t.string(),
+  u,
   arr: t.array(t.array(t.boolean())),
   z: t.object({
     z1: t.number(),
@@ -124,9 +137,9 @@ type TA = XTyped.Infer<typeof a>
 
 const o: unknown = { x: 2, y: '2' }
 
-if (t.string().validate(o)) {
-  o
-}
+// if (t.string().validate(o)) {
+//   o
+// }
 if (a.validate(o)) {
   o
 }
