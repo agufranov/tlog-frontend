@@ -20,10 +20,11 @@ test('object', () => {
 })
 
 test('array', () => {
-  //   const arr = t.array(t.string())
-  //   expect(arr.validate([])).toBe(true)
-  //   expect(arr.validate(['a'])).toBe(true)
-  //   expect(arr.validate(['a', 'b'])).toBe(true)
-  //   expect(arr.validate([1])).toBe(false)
-  //   expect(arr.validate('abc')).toBe(false)
+  const arr = t.array(t.string())
+
+  expect(arr.validate([])).toBe(true)
+  expect(arr.validate(['a'])).toBe(true)
+  expect(arr.validate(['a', 'b'])).toBe(true)
+  expect(arr.validate(['a', 1])).toBe(false)
+  expect(arr.validate('abc')).toBe(false)
 })

@@ -77,15 +77,19 @@ export namespace XTyped {
     }
   }
 
-  export class Array<T> extends Schema<Types.ARRAY> {
+  export class Array<T extends Schema<any>> extends Schema<Types.ARRAY> {
     type = Types.ARRAY as const
 
     constructor(public schema: T) {
       super()
     }
 
-    validate(o: unknown): o is Infer<this> {
-      // TODO
+    validate(value: unknown): value is Infer<this> {
+      if (!global.Array.isArray(value)) return false
+      for (let item of value) {
+        if (!this.schema.validate(item)) return false
+      }
+
       return true
     }
   }
