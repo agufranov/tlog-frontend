@@ -12,7 +12,7 @@ export namespace XTyped {
     type: T
   }
 
-  abstract class Schema<T extends Types> implements Type<T> {
+  export abstract class Schema<T extends Types> implements Type<T> {
     abstract type: T
     abstract validate(value: unknown): value is Infer<this>
   }
@@ -94,16 +94,19 @@ export namespace XTyped {
     }
   }
 
-  export class Union<T> extends Schema<Types.UNION> {
+  export class Union<T extends Schema<any>[]> extends Schema<Types.UNION> {
     type = Types.UNION as const
 
     constructor(public schema: T) {
       super()
     }
 
-    validate(o: unknown): o is Infer<this> {
-      // TODO
-      return true
+    validate(value: unknown): value is Infer<this> {
+      for (let schema of this.schema) {
+        if (schema.validate(value)) return true
+      }
+
+      return false
     }
   }
 
@@ -129,7 +132,7 @@ export const t = {
   number: () => new XTyped.Number(),
   boolean: () => new XTyped.Boolean(),
   object: <T extends { [key: string]: XTyped.Value }>(schema: T) => new XTyped.Object<T>(schema),
-  array: <T extends XTyped.Value>(schema: T) => new XTyped.Array<T>(schema),
+  array: <T extends XTyped.Schema<any>>(schema: T) => new XTyped.Array<T>(schema),
   union: <T extends XTyped.Value[]>(schema: T) => new XTyped.Union<T>(schema),
 }
 

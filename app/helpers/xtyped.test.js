@@ -28,3 +28,11 @@ test('array', () => {
   expect(arr.validate(['a', 1])).toBe(false)
   expect(arr.validate('abc')).toBe(false)
 })
+
+test('union', () => {
+  const u = t.union([t.string(), t.number()])
+
+  expect(u.validate('')).toBe(true)
+  expect(u.validate(1)).toBe(true)
+  expect(u.validate(true)).toBe(false)
+})
