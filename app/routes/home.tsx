@@ -15,7 +15,7 @@ export default function Home() {
   const userStore = useUserStore()
 
   useEffect(() => {
-    userStore.fetchUser()
+    userStore.fetchProfile()
   }, [])
 
   useEffect(() => {

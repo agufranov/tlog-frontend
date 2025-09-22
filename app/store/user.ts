@@ -1,18 +1,16 @@
 import { create } from 'zustand'
 import { fetchJson } from '~/helpers/fetchJson'
+import { fetchJsonOpenApi } from '~/helpers/fetchJsonOpenApi'
+import type { AsyncReturnType } from '~/helpers/types'
 
-// TODO extract
-type User = {
-  username: string
-  id: string
-}
+const fetchProfile = () => fetchJsonOpenApi.get('/auth/profile')
 
 export interface UserState {
-  user?: User
+  user: AsyncReturnType<typeof fetchProfile>['data']['user'] | undefined
   error?: any
   loading: boolean
   isFetched: boolean
-  fetchUser: () => Promise<void>
+  fetchProfile: () => Promise<void>
   signOut: () => Promise<void>
 }
 
@@ -27,10 +25,10 @@ export const useUserStore = create<UserState>((set) => {
     error,
     isFetched,
     loading,
-    fetchUser: async () => {
+    fetchProfile: async () => {
       try {
         set({ loading: true })
-        const response = await fetchJson.get<{ user: User }>('/api/auth/profile')
+        const response = await fetchProfile()
         console.log('response', response)
         const { data } = response
         set({ user: data?.user, isFetched: true })

@@ -1,5 +1,5 @@
 import type { paths } from 'api'
-import { fetchJson, type FetchResult } from './fetchJson'
+import { createFetchJson, type FetchResult } from './fetchJson'
 import { type HttpMethod, type HttpMethodsWithoutBody } from './httpMethods'
 import type { ApiEndpointRequest, ApiEndpointResponseSuccess, RoutesWithMethod } from './openApiTypes'
 
@@ -24,14 +24,14 @@ export type FetchJsonOpenApi<Paths extends Record<string, any>> = {
     : FetchJsonOpenApiMethodWithBody<Paths, httpMethod>
 }
 
-const fetchJsonOpenApi = fetchJson as FetchJsonOpenApi<paths>
+export const fetchJsonOpenApi = createFetchJson({ basePrefix: '/api' }) as FetchJsonOpenApi<paths>
 
-const xxx = fetchJsonOpenApi
-  .post('/auth/signIn', { username: 's', password: 'd' }, {})
-  .then(({ data }) => data.debugSessionId)
+// const xxx = fetchJsonOpenApi
+//   .post('/auth/signIn', { username: 's', password: 'd' }, {})
+//   .then(({ data }) => data.debugSessionId)
 
-const yyy = fetchJsonOpenApi
-  // @ts-expect-error
-  .post('/auth/signIn', { userame: 's', password: 'd' }, {})
-  // @ts-expect-error
-  .then(({ data }) => data.debugSesionId)
+// const yyy = fetchJsonOpenApi
+//   // @ts-expect-error
+//   .post('/auth/signIn', { userame: 's', password: 'd' }, {})
+//   // @ts-expect-error
+//   .then(({ data }) => data.debugSesionId)

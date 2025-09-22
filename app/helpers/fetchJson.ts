@@ -50,6 +50,10 @@ const performFetch = async <TPayload extends object, TResult extends object>(
     await sleep(800)
     const data: TResult = await response.json()
 
+    if (!response.ok) {
+      throw new Error((data as any)?.error)
+    }
+
     return { response, data }
   } catch (error) {
     if (error instanceof SyntaxError && error.name === 'SyntaxError') {
@@ -107,7 +111,7 @@ export type FetchJson = {
     : FetchJsonMethodWithBody
 } & { createWithDefaults: (options: CreateFetchJsonOptions) => FetchJson }
 
-const createFetchJson = (options: CreateFetchJsonOptions): FetchJson => {
+export const createFetchJson = (options: CreateFetchJsonOptions): FetchJson => {
   return {
     ...HTTP_METHODS.reduce(
       (acc, httpMethod) => ({

@@ -1,9 +1,9 @@
 import { useCallback, useState } from 'react'
-import { fetchJson, isMethodHasBody, type FetchArguments } from '~/helpers/fetchJson'
+import { fetchJson, isMethodHasBody, type FetchArguments, type FetchResult } from '~/helpers/fetchJson'
 import { HTTP_METHODS, type HttpMethod, type HttpMethodsWithoutBody } from '~/helpers/httpMethods'
 
 export interface UseFetchJsonMethodWithoutPayloadResult<TResult extends object> {
-  value: TResult
+  data: TResult
   loading: boolean
   error: any
   isFetched: boolean
@@ -25,7 +25,7 @@ const createUseFetchJson = (httpMethod: HttpMethod) => {
       ? UseFetchJsonMethodWithoutPayloadResult<TResult>
       : UseFetchJsonMethodWithPayloadResult<TPayload, TResult>
 
-    const [value, setValue] = useState<UseFetchJsonMethodResult['value']>()
+    const [data, setData] = useState<UseFetchJsonMethodResult['data']>()
     const [error, setError] = useState<UseFetchJsonMethodResult['error']>()
     const [loading, setLoading] = useState<UseFetchJsonMethodResult['loading']>(false)
     const [isFetched, setIsFetched] = useState<UseFetchJsonMethodResult['isFetched']>(false)
@@ -44,26 +44,31 @@ const createUseFetchJson = (httpMethod: HttpMethod) => {
             ? fetchJsonMethod(args[0], payload, args[1])
             : fetchJsonMethod(args[0], args[1]))
 
-          const data = fetchResult.data as TResult
+          const { data } = fetchResult as FetchResult<TResult>
           // response = fetchResult.response
 
-          setValue(data)
+          if ((data as any).error) {
+            setError((data as any).error)
+            return
+          }
+
+          setData(data)
 
           return data
-        } catch (err) {
-          setValue(undefined) // TODO спорно
-          setError(err)
+        } catch (err: any) {
+          // setData(undefined) // TODO спорно
+          setError(err.message)
           throw err
         } finally {
           setLoading(false)
           setIsFetched(true)
         }
       },
-      [setValue]
+      [setData]
     )
 
     return {
-      value,
+      data,
       loading,
       error,
       isFetched,

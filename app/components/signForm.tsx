@@ -7,8 +7,6 @@ export const SignForm = () => {
   const [username, setUsername] = useState('admin')
   const [password, setPassword] = useState('1')
 
-  const [isSigningIn, setIsSigningIn] = useState(false)
-
   const userStore = useUserStore()
 
   // TODO autogenerate api types from backend
@@ -25,8 +23,6 @@ export const SignForm = () => {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
 
-    setIsSigningIn(true)
-
     // const g = await fetchJson.get<{ a: 2 }>('/api/auth/cookie', {})
     // g.data.a
 
@@ -36,11 +32,7 @@ export const SignForm = () => {
     // p.data.result
 
     const data = Object.fromEntries(new FormData(e.target as HTMLFormElement))
-    console.log('FormDAata', data)
-    console.log('fetch result', await signIn.fetch(data))
-    await userStore.fetchUser()
-
-    setIsSigningIn(false)
+    await userStore.fetchProfile()
   }
 
   return (
@@ -54,9 +46,10 @@ export const SignForm = () => {
         <Field.Label>Password</Field.Label>
         <Input name="password" type="password" value={password} onChange={handlePasswordChange} />
       </Field.Root>
-      <Button type="submit" variant="solid" mt={4} loading={isSigningIn}>
+      <Button type="submit" variant="solid" mt={4} loading={signIn.loading}>
         Click
       </Button>
+      {signIn.error && <div>{signIn.error}</div>}
     </form>
   )
 }
